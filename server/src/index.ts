@@ -5,12 +5,15 @@ import authRoutes from "./features/auth/auth.routes";
 import adminRoutes from "./features/admin/admin.routes";
 import { allowedOrigins } from "./core/config/origins";
 import { HTTPException } from "hono/http-exception";
+import { logger } from 'hono/logger';
 
 type AppEnv = {
 	// You can define environment variables here for type safety
 };
 
 export const app = new OpenAPIHono<{ Bindings: AppEnv }>().basePath("/api");
+
+app.use(logger());
 
 app.onError((err, c) => {
 	if (err instanceof HTTPException) {

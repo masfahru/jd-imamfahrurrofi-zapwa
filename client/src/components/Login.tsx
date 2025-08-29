@@ -2,16 +2,10 @@ import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { useState } from "react";
+import { Zap } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputPassword } from "@/components/ui/input-password";
@@ -52,7 +46,6 @@ export function Login() {
   });
 
   const { mutate: submitLogin, isPending } = useMutation<
-    // Login response is now just used to confirm success, we don't need its body
     unknown,
     Error,
     typeof form.values
@@ -62,7 +55,6 @@ export function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
-        // IMPORTANT: This tells the browser to handle the Set-Cookie header
         credentials: "include",
       });
 
@@ -70,7 +62,6 @@ export function Login() {
         const errorData = await res.json();
         throw new Error(errorData.error || "Login failed");
       }
-      // We don't need to return the body, the cookie is now set
       return res.json();
     },
     onSuccess: async () => {
@@ -78,23 +69,18 @@ export function Login() {
       form.setErrors({});
 
       try {
-        // The browser will now automatically send the cookie
         const sessionRes = await fetch(
           `${SERVER_URL}/api/auth/get-session`,
           {
-            // IMPORTANT: This tells the browser to send cookies with the request
             credentials: "include",
           },
         );
-
         if (!sessionRes.ok) {
           throw new Error("Could not verify session. Please try again.");
         }
 
         const sessionData: SessionResponse = await sessionRes.json();
         const { user } = sessionData;
-
-        // Pass the user object to the store
         login(user);
 
         const state = useAuthStore.getState();
@@ -122,17 +108,21 @@ export function Login() {
   const isLoading = isPending || isVerifying;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+    <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm">
         <form onSubmit={form.onSubmit((values) => submitLogin(values))}>
-          <CardHeader>
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Zap className="h-8 w-8"/>
+              <h1 className="text-2xl font-bold">ZapWA</h1>
+            </div>
             <CardTitle className="text-2xl">Admin Login</CardTitle>
             <CardDescription>
-              Enter your email below to login to your account.
+              Enter your credentials to access the admin panel.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2">
+          <CardContent className="grid gap-4 pt-3">
+            <div className="grid gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -145,7 +135,7 @@ export function Login() {
                 <p className="text-sm text-red-500">{form.errors.email}</p>
               )}
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <Label htmlFor="password">Password</Label>
               <InputPassword
                 id="password"
@@ -162,7 +152,7 @@ export function Login() {
               </p>
             )}
           </CardContent>
-          <CardFooter>
+          <CardFooter className="mt-3">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isPending
                 ? "Signing In..."

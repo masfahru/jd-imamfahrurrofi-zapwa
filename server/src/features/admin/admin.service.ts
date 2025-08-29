@@ -1,6 +1,6 @@
 import { db } from "@server/core/db/drizzle";
 import { users, accounts, ROLES } from "@server/core/db/schema";
-import { and, count, eq, inArray, ne } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, ne, or } from "drizzle-orm";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
 import { HTTPException } from "hono/http-exception";
@@ -23,6 +23,7 @@ export const addAdmin = async (
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
+
   if (existingUser) {
     throw new HTTPException(400, { message: "User with this email already exists." });
   }
@@ -30,6 +31,7 @@ export const addAdmin = async (
   const authContext = await auth.$context;
   const passwordHasher = authContext.password;
   const generateId = authContext.generateId;
+
   if (typeof generateId !== "function" || !passwordHasher) {
     throw new HTTPException(500, { message: "Auth context is not properly configured." });
   }
@@ -67,6 +69,7 @@ export const addAdmin = async (
 
       return insertedUser;
     });
+
   if (!newUser) {
     throw new HTTPException(500, { message: "Failed to create new admin user." });
   }
@@ -100,6 +103,7 @@ export const setUserRole = async (
       email: users.email,
       role: users.role,
     });
+
   if (!updatedUser) {
     throw new HTTPException(404, { message: "User not found." });
   }
@@ -111,15 +115,26 @@ export const setUserRole = async (
  * Fetches a paginated list of users with 'admin' or 'super admin' roles.
  * @param page - The current page number (1-based).
  * @param limit - The number of items per page.
+ * @param search - Optional search term to filter by name or email.
  * @returns A promise that resolves to a paginated response object.
  */
-export const getAdmins = async (page: number, limit: number) => {
+export const getAdmins = async (page: number, limit: number, search?: string) => {
   const offset = (page - 1) * limit;
-  const whereClause = inArray(users.role, ["admin", "super admin"]);
 
-  // Get total count of admins
+  // Build the where clause directly. `and` will ignore the `undefined` from the search condition if `search` is falsy.
+  const whereClause = and(
+    inArray(users.role, ["admin", "super admin"]),
+    search
+      ? or(
+        ilike(users.name, `%${search}%`),
+        ilike(users.email, `%${search}%`),
+      )
+      : undefined,
+  );
+
+  // Get total count of matching admins
   const totalItemsResult = await db.select({ value: count() }).from(users).where(whereClause);
-  const totalItems = totalItemsResult[0] ? totalItemsResult[0].value: 0;
+  const totalItems = totalItemsResult[0] ? totalItemsResult[0].value : 0;
   const totalPages = Math.ceil(totalItems / limit);
 
   // Get the admins for the current page
@@ -135,6 +150,7 @@ export const getAdmins = async (page: number, limit: number) => {
     offset,
     limit,
   });
+
   return {
     items: adminUsers,
     pagination: {
@@ -176,6 +192,7 @@ export const getUsers = async (page: number, limit: number) => {
     offset,
     limit,
   });
+
   return {
     items: userList,
     pagination: {
@@ -202,6 +219,7 @@ export const updateAdmin = async (adminId: string, name: string, email: string) 
   const existingUserWithEmail = await db.query.users.findFirst({
     where: and(eq(users.email, email), ne(users.id, adminId)),
   });
+
   if (existingUserWithEmail) {
     throw new HTTPException(400, { message: 'Email is already in use by another account.' });
   }
@@ -217,6 +235,7 @@ export const updateAdmin = async (adminId: string, name: string, email: string) 
       role: users.role,
       banned: users.banned,
     });
+
   if (!updatedAdmin) {
     throw new HTTPException(404, { message: 'Admin not found.' });
   }
@@ -237,6 +256,7 @@ export const deleteAdmin = async (adminId: string) => {
   }
 
   const [deletedUser] = await db.delete(users).where(eq(users.id, adminId)).returning({ id: users.id });
+
   if (!deletedUser) {
     throw new HTTPException(404, { message: 'Admin not found.' });
   }

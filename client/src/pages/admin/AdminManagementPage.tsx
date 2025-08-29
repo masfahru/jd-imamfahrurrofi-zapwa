@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, KeyRound, PlusCircle, Trash2 } from "lucide-react";
@@ -20,7 +20,7 @@ import { EditAdminDialog } from "@/components/dialogs/edit-admin-dialog";
 import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
-import { AddAdminDialog } from "@/components/dialogs/add-admin-dialog"; // [!code ++]
+import { AddAdminDialog } from "@/components/dialogs/add-admin-dialog";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -52,6 +52,22 @@ export function AdminManagementPage() {
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+
+  // Effect to debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPage(1); // Reset to first page on new search
+    }, 500); // 500ms delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+
   const onPageChange = (newPage: number) => {
     setPage(newPage);
   };
@@ -59,11 +75,19 @@ export function AdminManagementPage() {
     setLimit(newPerPage);
     setPage(1); // Reset to the first page when page size changes
   };
+
   // Fetch admins using useQuery
   const { data: adminData, isLoading, isError, error } = useQuery<{ data: { items: Admin[], pagination: Pagination } }, Error>({
-    queryKey: ["admins", page, limit],
+    queryKey: ["admins", page, limit, debouncedSearchTerm],
     queryFn: async () => {
-      const res = await fetch(`${SERVER_URL}/api/admin/admins?page=${page}&limit=${limit}`, {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
+      }
+      const res = await fetch(`${SERVER_URL}/api/admin/admins?${params.toString()}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -74,6 +98,7 @@ export function AdminManagementPage() {
   });
   const admins = adminData?.data?.items || [];
   const pagination = adminData?.data?.pagination;
+
   // Mutation for deleting an admin
   const { mutate: deleteAdmin } = useMutation({
     mutationFn: async (adminId: string) => {
@@ -131,6 +156,7 @@ export function AdminManagementPage() {
       console.error(err);
     },
   });
+
   const handleEdit = (admin: Admin) => {
     setSelectedAdmin(admin);
     setIsEditDialogOpen(true);
@@ -207,6 +233,7 @@ export function AdminManagementPage() {
 
   if (isLoading) return <div>Loading admins...</div>;
   if (isError) return <div>Error fetching admins: {error.message}</div>;
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
@@ -215,7 +242,7 @@ export function AdminManagementPage() {
           <PlusCircle className="mr-2 h-4 w-4"/> Add Admin
         </Button>
       </div>
-      <DataTableToolbar/>
+      <DataTableToolbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       <DataTable columns={columns} data={admins}/>
       {pagination && (
         <DataTablePagination

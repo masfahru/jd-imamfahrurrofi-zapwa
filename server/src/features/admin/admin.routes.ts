@@ -19,7 +19,7 @@ import {
   deleteAdminRoute,
   changePasswordRoute,
 } from './admin.openapi';
-import { jsonResponse } from '@server/core/utils/response'; // [!code ++]
+import { jsonResponse } from '@server/core/utils/response';
 
 const app = new OpenAPIHono<AdminEnv>();
 
@@ -42,10 +42,10 @@ app.openapi(addAdminRoute, async (c) => {
 });
 
 app.openapi(getAdminsRoute, async (c) => {
-  const { page = '1', limit = '10' } = c.req.query();
+  const { page, limit, search } = c.req.valid('query');
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
-  const admins = await getAdmins(pageNumber, limitNumber);
+  const admins = await getAdmins(pageNumber, limitNumber, search);
   return jsonResponse(c, 'Admins retrieved successfully', admins, 200);
 });
 

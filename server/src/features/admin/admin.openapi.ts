@@ -35,7 +35,7 @@ export const addAdminRoute = createRoute({
   },
   responses: {
     201: {
-      content: { "application/json": { schema: createSuccessResponseSchema(UserSchema) } }, // [!code focus]
+      content: { "application/json": { schema: createSuccessResponseSchema(UserSchema) } },
       description: "Admin user created successfully",
     },
     400: {
@@ -64,14 +64,21 @@ export const getAdminsRoute = createRoute({
   security: [{ BearerAuth: [] }],
   summary: "List all admin and super admin users",
   tags: ["Admin"],
+  request: {
+    query: z.object({
+      page: z.string().optional().default('1'),
+      limit: z.string().optional().default('10'),
+      search: z.string().optional(),
+    }),
+  },
   responses: {
     200: {
       content: {
         "application/json": {
-          schema: createPaginatedResponseSchema(UserSchema), // [!code focus]
+          schema: createPaginatedResponseSchema(UserSchema),
         },
       },
-      description: "A paginated list of admin and super admin users", // [!code focus]
+      description: "A paginated list of admin and super admin users",
     },
     401: {
       content: { "application/json": { schema: ErrorSchema } },
@@ -107,7 +114,7 @@ export const updateAdminRoute = createRoute({
   },
   responses: {
     200: {
-      content: { 'application/json': { schema: createSuccessResponseSchema(UserSchema) } }, // [!code focus]
+      content: { 'application/json': { schema: createSuccessResponseSchema(UserSchema) } },
       description: 'Admin updated successfully',
     },
     400: {
@@ -147,7 +154,7 @@ export const deleteAdminRoute = createRoute({
     200: {
       content: {
         'application/json': {
-          schema: createSuccessResponseSchema(z.object({ id: z.string() })), // [!code focus]
+          schema: createSuccessResponseSchema(z.object({ id: z.string() })),
         },
       },
       description: 'Admin deleted successfully',
@@ -186,10 +193,10 @@ export const getUsersRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: createPaginatedResponseSchema(UserSchema), // [!code focus]
+          schema: createPaginatedResponseSchema(UserSchema),
         },
       },
-      description: "A paginated list of all users in the system", // [!code focus]
+      description: "A paginated list of all users in the system",
     },
     401: {
       content: { "application/json": { schema: ErrorSchema } },

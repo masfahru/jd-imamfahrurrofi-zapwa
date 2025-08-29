@@ -125,7 +125,6 @@ export function Login() {
       <Card className="w-full max-w-sm">
         <form onSubmit={form.onSubmit((values) => submitLogin(values))}>
           <CardHeader>
-            {/* ... form content is unchanged ... */}
             <CardTitle className="text-2xl">Admin Login</CardTitle>
             <CardDescription>
               Enter your email below to login to your account.

@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ROLES } from "../../../../server/src/core/db/schema";
+import { ROLES } from "server/src/core/db/schema";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -18,13 +18,25 @@ interface User {
   banned: boolean;
 }
 
+interface PaginatedUsersResponse {
+  data: {
+    items: User[];
+    // We can add pagination controls later using this info
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+    }
+  }
+}
+
 function UserList() {
   const {
-    data: users,
+    data,
     isLoading,
     error,
     isError,
-  } = useQuery<User[], Error>({
+  } = useQuery<PaginatedUsersResponse, Error>({
     queryKey: ["users"],
     queryFn: async () => {
       const res = await fetch(`${SERVER_URL}/api/admin/users`, {
@@ -37,6 +49,8 @@ function UserList() {
     },
   });
 
+  const users = data?.data?.items || [];
+
   if (isLoading) return <div>Loading users...</div>;
   if (isError) return <div>Error: {error.message}</div>;
 
@@ -48,7 +62,7 @@ function UserList() {
       </CardHeader>
       <CardContent>
         <ul className="divide-y divide-gray-200">
-          {users?.map((user) => (
+          {users.map((user) => (
             <li key={user.id} className="py-3">
               <p className="font-semibold">{user.name}</p>
               <p className="text-sm text-gray-500">{user.email}</p>

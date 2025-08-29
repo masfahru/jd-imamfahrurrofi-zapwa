@@ -14,7 +14,7 @@ type AuthState = {
   user: User | null;
   isAuthenticated: boolean;
   login: (user: User) => void;
-  logout: () => Promise<void>; // Logout is now async
+  logout: () => Promise<void>;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await fetch(`${SERVER_URL}/api/auth/sign-out`, {
             method: "POST",
-            credentials: "include",
+            credentials: "include", // Important: sends cookies along with the request
           });
         } catch (error) {
           console.error("Failed to sign out from server:", error);

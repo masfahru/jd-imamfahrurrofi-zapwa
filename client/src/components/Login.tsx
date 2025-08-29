@@ -104,9 +104,11 @@ export function Login() {
             "You do not have permission to access the admin panel.",
           );
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         await logout();
-        form.setErrors({ root: err.message });
+        if (err instanceof Error) {
+          form.setErrors({ root: err.message });
+        }
       } finally {
         setIsVerifying(false);
       }

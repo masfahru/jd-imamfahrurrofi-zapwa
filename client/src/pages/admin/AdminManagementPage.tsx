@@ -1,20 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "@mantine/form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, KeyRound, PlusCircle, Trash2 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,14 +16,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { EditAdminDialog } from "@/components/dialogs/edit-admin-dialog";
 import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
-import { InputPassword } from "@/components/ui/input-password.tsx";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { AddAdminDialog } from "@/components/dialogs/add-admin-dialog"; // [!code ++]
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -54,101 +41,6 @@ interface Pagination {
   hasPrevPage: boolean;
 }
 
-// Dialog Form for adding a new admin
-function AddAdminForm({ setOpen }: { setOpen: (open: boolean) => void }) {
-  const queryClient = useQueryClient();
-  const form = useForm({
-    initialValues: {
-      name: "",
-      email: "",
-      password: "",
-      role: "admin" as "admin" | "super admin",
-    },
-    validate: {
-      name: (value) => (value.length < 2 ? "Name is too short" : null),
-      email: (value) => (/^\S+@\S+$/.test(value) ? null : "Invalid email"),
-      password: (value) =>
-        value.length < 8 ? "Password must be at least 8 characters" : null,
-    },
-  });
-
-  const { mutate: addAdmin, isPending } = useMutation<Admin, Error, typeof form.values>({
-    mutationFn: async (values: typeof form.values) => {
-      const res = await fetch(`${SERVER_URL}/api/admin/admins`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to add admin");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      setOpen(false);
-      form.reset();
-    },
-    onError: (err) => {
-      form.setErrors({ root: err.message });
-    },
-  });
-  return (
-    <form onSubmit={form.onSubmit((values) => addAdmin(values))}>
-      <DialogHeader>
-        <DialogTitle>Add New Admin</DialogTitle>
-        <DialogDescription>
-          Fill in the details to create a new admin or super admin user.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        {/* Form Fields */}
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="name" className="text-right">Name</Label>
-          <Input id="name" {...form.getInputProps("name")} className="col-span-3"/>
-          {form.errors.name && <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.name}</p>}
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="email" className="text-right">Email</Label>
-          <Input id="email" type="email" {...form.getInputProps("email")} className="col-span-3"/>
-          {form.errors.email && <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.email}</p>}
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="password" className="text-right">Password</Label>
-          <InputPassword
-            id="password"
-            {...form.getInputProps("password")}
-            className="col-span-3"
-          />
-          {form.errors.password &&
-            <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.password}</p>}
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="role" className="text-right">Role</Label>
-          <Select onValueChange={(value) => form.setFieldValue("role", value as "admin" | "super admin")}
-                  defaultValue={form.values.role}>
-            <SelectTrigger className="col-span-3">
-              <SelectValue placeholder="Select a role"/>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="super admin">Super Admin</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {form.errors.root && <p className="text-sm font-medium text-destructive text-center">{form.errors.root}</p>}
-      </div>
-      <DialogFooter>
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Adding..." : "Add Admin"}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
-
 // Main Page Component
 export function AdminManagementPage() {
   const queryClient = useQueryClient();
@@ -160,16 +52,13 @@ export function AdminManagementPage() {
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-
   const onPageChange = (newPage: number) => {
     setPage(newPage);
   };
-
   const onPerPageChange = (newPerPage: number) => {
     setLimit(newPerPage);
     setPage(1); // Reset to the first page when page size changes
   };
-
   // Fetch admins using useQuery
   const { data: adminData, isLoading, isError, error } = useQuery<{ data: { items: Admin[], pagination: Pagination } }, Error>({
     queryKey: ["admins", page, limit],
@@ -185,7 +74,6 @@ export function AdminManagementPage() {
   });
   const admins = adminData?.data?.items || [];
   const pagination = adminData?.data?.pagination;
-
   // Mutation for deleting an admin
   const { mutate: deleteAdmin } = useMutation({
     mutationFn: async (adminId: string) => {
@@ -222,7 +110,6 @@ export function AdminManagementPage() {
       setIsEditDialogOpen(false);
     },
   });
-
   const { mutate: changePassword, isPending: isChangingPassword } = useMutation<{ success: boolean }, Error, { adminId: string, password: string }>({
     mutationFn: async ({ adminId, password }: { adminId: string, password: string }) => {
       const res = await fetch(`${SERVER_URL}/api/admin/admins/${adminId}/password`, {
@@ -244,7 +131,6 @@ export function AdminManagementPage() {
       console.error(err);
     },
   });
-
   const handleEdit = (admin: Admin) => {
     setSelectedAdmin(admin);
     setIsEditDialogOpen(true);
@@ -259,7 +145,6 @@ export function AdminManagementPage() {
   const handleSavePassword = (adminId: string, password: string) => {
     changePassword({ adminId, password });
   };
-
   const columns: ColumnDef<Admin>[] = [
     {
       id: "index",
@@ -322,21 +207,13 @@ export function AdminManagementPage() {
 
   if (isLoading) return <div>Loading admins...</div>;
   if (isError) return <div>Error fetching admins: {error.message}</div>;
-
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl">Admin Management</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4"/> Add Admin
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <AddAdminForm setOpen={setAddDialogOpen}/>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setAddDialogOpen(true)}>
+          <PlusCircle className="mr-2 h-4 w-4"/> Add Admin
+        </Button>
       </div>
       <DataTableToolbar/>
       <DataTable columns={columns} data={admins}/>
@@ -350,6 +227,10 @@ export function AdminManagementPage() {
           onPerPageChange={onPerPageChange}
         />
       )}
+      <AddAdminDialog
+        open={isAddDialogOpen}
+        onOpenChange={setAddDialogOpen}
+      />
       <EditAdminDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}

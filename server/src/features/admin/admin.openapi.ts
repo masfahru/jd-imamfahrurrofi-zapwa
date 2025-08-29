@@ -4,13 +4,16 @@ import {
   requireRole,
 } from "@server/core/middleware/auth.middleware";
 import {
-  ErrorSchema,
   UserSchema,
+  AddAdminBodySchema,
+  UpdateAdminParamsSchema,
+  UpdateAdminBodySchema,
+  DeleteAdminParamsSchema,
   UpdateUserRoleParamsSchema,
   UpdateUserRoleBodySchema,
   UpdateUserRoleResponseSchema,
-  AddAdminBodySchema, // Import new schema
 } from "./admin.schema";
+import { createPaginatedResponseSchema, createSuccessResponseSchema, ErrorSchema } from '@server/core/utils/response';
 
 // New Route Definition for adding an admin
 export const addAdminRoute = createRoute({
@@ -31,7 +34,7 @@ export const addAdminRoute = createRoute({
   },
   responses: {
     201: {
-      content: { "application/json": { schema: UserSchema } },
+      content: { "application/json": { schema: createSuccessResponseSchema(UserSchema) } }, // [!code focus]
       description: "Admin user created successfully",
     },
     400: {
@@ -52,7 +55,6 @@ export const addAdminRoute = createRoute({
     },
   },
 });
-
 export const getAdminsRoute = createRoute({
   method: "get",
   path: "/admins",
@@ -64,10 +66,10 @@ export const getAdminsRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: z.array(UserSchema),
+          schema: createPaginatedResponseSchema(UserSchema), // [!code focus]
         },
       },
-      description: "A list of admin and super admin users",
+      description: "A paginated list of admin and super admin users", // [!code focus]
     },
     401: {
       content: { "application/json": { schema: ErrorSchema } },
@@ -83,7 +85,93 @@ export const getAdminsRoute = createRoute({
     },
   },
 });
-
+// NEW: Definition for updating an admin
+export const updateAdminRoute = createRoute({
+  method: 'put',
+  path: '/admins/{id}',
+  middleware: [requireAuth, requireRole(['super admin'])],
+  security: [{ BearerAuth: [] }],
+  summary: "Update an admin's name or email",
+  tags: ['Admin'],
+  request: {
+    params: UpdateAdminParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: UpdateAdminBodySchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: createSuccessResponseSchema(UserSchema) } }, // [!code focus]
+      description: 'Admin updated successfully',
+    },
+    400: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Bad Request (e.g., validation error)',
+    },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Unauthorized',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Forbidden',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Admin not found',
+    },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal Server Error',
+    },
+  },
+});
+// NEW: Definition for deleting an admin
+export const deleteAdminRoute = createRoute({
+  method: 'delete',
+  path: '/admins/{id}',
+  middleware: [requireAuth, requireRole(['super admin'])],
+  security: [{ BearerAuth: [] }],
+  summary: 'Delete an admin user',
+  tags: ['Admin'],
+  request: {
+    params: DeleteAdminParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: createSuccessResponseSchema(z.object({ id: z.string() })), // [!code focus]
+        },
+      },
+      description: 'Admin deleted successfully',
+    },
+    400: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Bad Request (e.g., trying to delete super admin)',
+    },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Unauthorized',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Forbidden',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Admin not found',
+    },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal Server Error',
+    },
+  },
+});
 export const getUsersRoute = createRoute({
   method: "get",
   path: "/users",
@@ -95,10 +183,10 @@ export const getUsersRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: z.array(UserSchema),
+          schema: createPaginatedResponseSchema(UserSchema), // [!code focus]
         },
       },
-      description: "A list of all users in the system",
+      description: "A paginated list of all users in the system", // [!code focus]
     },
     401: {
       content: { "application/json": { schema: ErrorSchema } },
@@ -114,7 +202,6 @@ export const getUsersRoute = createRoute({
     },
   },
 });
-
 export const setUserRoleRoute = createRoute({
   method: "post",
   path: "/users/{id}/role",
@@ -136,7 +223,7 @@ export const setUserRoleRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: UpdateUserRoleResponseSchema,
+          schema: UpdateUserRoleResponseSchema, // This already uses createSuccessResponseSchema
         },
       },
       description: "User role updated successfully",

@@ -1,83 +1,89 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
-import type { AdminEnv } from "@server/core/middleware/auth.middleware";
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { HTTPException } from 'hono/http-exception';
+import type { AdminEnv } from '@server/core/middleware/auth.middleware';
 import {
   getAdmins,
   setUserRole,
   getUsers,
-  addAdmin, // Import the new service
-} from "@server/features/admin/admin.service";
+  addAdmin,
+  updateAdmin,
+  deleteAdmin,
+} from '@server/features/admin/admin.service';
 import {
   getAdminsRoute,
   setUserRoleRoute,
   getUsersRoute,
-  addAdminRoute, // Import the new route definition
-} from "./admin.openapi";
+  addAdminRoute,
+  updateAdminRoute,
+  deleteAdminRoute,
+} from './admin.openapi';
+import { jsonResponse } from '@server/core/utils/response'; // [!code ++]
 
 const app = new OpenAPIHono<AdminEnv>();
 
-app.openAPIRegistry.registerComponent("securitySchemes", "BearerAuth", {
-  type: "http",
-  scheme: "bearer",
+app.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
 });
 
-// Add the new route handler
-app.openapi(addAdminRoute, async (c) => {
-  const { name, email, password, role } = c.req.valid("json");
-  try {
-    const newUser = await addAdmin(name, email, password, role);
-    return c.json(newUser, 201);
-  } catch (error: any) {
-    if (error.message.includes("already exists")) {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error(error);
-    return c.json({ error: "Failed to create admin user" }, 500);
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ message: err.message }, err.status as any);
   }
+  return c.json({ message: 'Internal server error' }, 500);
+});
+
+app.openapi(addAdminRoute, async (c) => {
+  const { name, email, password, role } = c.req.valid('json');
+  const newUser = await addAdmin(name, email, password, role);
+  return jsonResponse(c, 'Admin user created successfully', newUser, 201);
 });
 
 app.openapi(getAdminsRoute, async (c) => {
-  try {
-    const admins = await getAdmins();
-    return c.json(admins, 200);
-  } catch (error) {
-    console.error(error);
-    return c.json({ error: "Failed to fetch admins" }, 500);
-  }
+  const { page = '1', limit = '10' } = c.req.query();
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+  const admins = await getAdmins(pageNumber, limitNumber);
+  return jsonResponse(c, 'Admins retrieved successfully', admins, 200);
 });
 
 app.openapi(getUsersRoute, async (c) => {
-  try {
-    const users = await getUsers();
-    return c.json(users, 200);
-  } catch (error) {
-    console.error(error);
-    return c.json({ error: "Failed to fetch users" }, 500);
-  }
+  const { page = '1', limit = '10' } = c.req.query();
+  const pageNumber = parseInt(page, 10);
+  const limitNumber = parseInt(limit, 10);
+  const users = await getUsers(pageNumber, limitNumber);
+  return jsonResponse(c, 'Users retrieved successfully', users, 200);
 });
 
 app.openapi(setUserRoleRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const { role } = c.req.valid("json");
-
-  try {
-    const updatedUser = await setUserRole(id, role);
-    return c.json(
-      {
-        message: "User role updated successfully",
-        user: updatedUser,
-      },
-      200,
-    );
-  } catch (error: any) {
-    if (
-      error.message === "The primary super admin cannot be demoted." ||
-      error.message === "User not found."
-    ) {
-      return c.json({ error: error.message }, 400);
-    }
-    console.error(error);
-    return c.json({ error: "Internal Server Error" }, 500);
-  }
+  const { id } = c.req.valid('param');
+  const { role } = c.req.valid('json');
+  const updatedUser = await setUserRole(id, role);
+  return jsonResponse(c, 'User role updated successfully', updatedUser, 200);
 });
 
+app.openapi(updateAdminRoute, async (c) => {
+  const { id } = c.req.valid('param');
+  const { name, email } = c.req.valid('json');
+
+  const updatedAdmin = await updateAdmin(id, name, email);
+
+  if (!updatedAdmin) {
+    throw new HTTPException(404, { message: 'Admin not found' });
+  }
+
+  return jsonResponse(c, 'Admin updated successfully', updatedAdmin, 200);
+});
+
+app.openapi(deleteAdminRoute, async (c) => {
+  const { id } = c.req.valid('param');
+
+  const result = await deleteAdmin(id);
+
+  if (!result) {
+    throw new HTTPException(404, { message: 'Admin not found' });
+  }
+
+  return jsonResponse(c, 'Admin deleted successfully', result, 200);
+});
 export default app;

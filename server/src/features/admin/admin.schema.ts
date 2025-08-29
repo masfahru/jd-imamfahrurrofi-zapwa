@@ -1,13 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { ROLES } from "@server/core/db/schema";
-
-export const ErrorSchema = z
-  .object({
-    error: z.string().openapi({
-      example: "Unauthorized",
-    }),
-  })
-  .openapi("Error");
+import { createSuccessResponseSchema } from "@server/core/utils/response";
 
 export const UserSchema = z
   .object({
@@ -19,7 +12,6 @@ export const UserSchema = z
   })
   .openapi("User");
 
-// New Schema for adding an admin
 export const AddAdminBodySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.email("Invalid email address"),
@@ -36,16 +28,34 @@ export const UpdateUserRoleParamsSchema = z.object({
     example: "user-123",
   }),
 });
-
 export const UpdateUserRoleBodySchema = z.object({
   role: z.enum(ROLES),
 });
 
-export const UpdateUserRoleResponseSchema = z.object({
-  message: z.string().openapi({ example: "User role updated successfully" }),
-  user: z.object({
+export const UpdateUserRoleResponseSchema = createSuccessResponseSchema(
+  z.object({
     id: z.string().openapi({ example: "user-123" }),
     email: z.email().openapi({ example: "user@example.com" }),
     role: z.enum(ROLES).nullable().openapi({ example: "admin" }),
+  }),
+);
+
+
+export const UpdateAdminParamsSchema = z.object({
+  id: z.string().openapi({
+    param: { name: "id", in: "path" },
+    example: "user-123",
+  }),
+});
+
+export const UpdateAdminBodySchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.email("Invalid email address"),
+});
+
+export const DeleteAdminParamsSchema = z.object({
+  id: z.string().openapi({
+    param: { name: "id", in: "path" },
+    example: "user-456",
   }),
 });

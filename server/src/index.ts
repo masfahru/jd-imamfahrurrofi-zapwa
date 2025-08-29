@@ -1,11 +1,12 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from '@scalar/hono-api-reference';
 import { cors } from "hono/cors";
-import authRoutes from "./features/auth/auth.routes";
-import adminRoutes from "./features/admin/admin.routes";
-import { allowedOrigins } from "./core/config/origins";
 import { HTTPException } from "hono/http-exception";
 import { logger } from 'hono/logger';
+import { allowedOrigins } from "./core/config/origins";
+import authRoutes from "./features/auth/auth.routes";
+import adminRoutes from "./features/admin/admin.routes";
+import userRoutes from "@server/features/user/user.routes";
 
 type AppEnv = {
 	// You can define environment variables here for type safety
@@ -38,6 +39,7 @@ app.use(
 
 app.route("/auth", authRoutes);
 app.route("/admin", adminRoutes);
+app.route("/user", userRoutes);
 
 app.get("/", (c) => {
 	return c.text("Welcome to the ZapWA API!");

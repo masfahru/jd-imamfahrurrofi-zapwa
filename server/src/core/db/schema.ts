@@ -4,8 +4,8 @@ import {
   timestamp,
   boolean,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
-// Define roles as a const array for type safety within your application code.
 export const ROLES = ["user", "admin", "super admin"] as const;
 
 // Core 'user' table required by better-auth
@@ -61,3 +61,32 @@ export const licenses = pgTable("license", {
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
+
+export const usersRelations = relations(users, ({ one }) => ({
+  // This defines the 'license' property on the user object in queries.
+  license: one(licenses, {
+    fields: [users.id],
+    references: [licenses.userId],
+  }),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const licensesRelations = relations(licenses, ({ one }) => ({
+  user: one(users, {
+    fields: [licenses.userId],
+    references: [users.id],
+  }),
+}));

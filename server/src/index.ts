@@ -1,22 +1,23 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { ApiResponse } from "shared/dist";
+import authRoutes from "./features/auth/auth.routes";
+import adminRoutes from "./features/admin/admin.routes";
 
-export const app = new Hono()
+// Define custom types for Hono's context if needed
+type AppEnv = {
+	// You can define environment variables here for type safety
+};
 
-.use(cors())
+export const app = new Hono<{ Bindings: AppEnv }>().basePath("/api");
 
-.get("/", (c) => {
-	return c.text("Hello Hono!");
-})
+app.use("*", cors());
 
-.get("/hello", async (c) => {
-	const data: ApiResponse = {
-		message: "Hello BHVR!",
-		success: true,
-	};
+// Mount feature-specific routes
+app.route("/auth", authRoutes);
+app.route("/admin", adminRoutes);
 
-	return c.json(data, { status: 200 });
+app.get("/", (c) => {
+	return c.text("Welcome to the ZapWA API!");
 });
 
 export default app;

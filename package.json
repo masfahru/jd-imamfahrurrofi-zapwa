@@ -1,16 +1,26 @@
 {
   "name": "JD-IMAMFAHRURROFI-ZAPWA",
   "version": "0.0.1",
-  "description": "ZapWA Backend and Frontend using Bun, Hono, React, Vite, and Turborepo",
   "author": "Imam Fahrur Rofi",
-  "license": "Attribution-NonCommercial-ShareAlike 4.0 International",
+  "devDependencies": {
+    "bun-types": "latest",
+    "turbo": "^2.5.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "description": "ZapWA Backend and Frontend using Bun, Hono, React, Vite, and Turborepo",
   "homepage": "https://github.com/masfahru/jd-imamfahrurrofi-zapwa",
-  "packageManager": "bun@1.2.4",
-  "workspaces": [
-    "./server",
-    "./client",
-    "./shared"
+  "keywords": [
+    "bun",
+    "hono",
+    "react",
+    "vite",
+    "monorepo",
+    "turbo"
   ],
+  "license": "Attribution-NonCommercial-ShareAlike 4.0 International",
+  "packageManager": "bun@1.2.4",
   "scripts": {
     "dev": "turbo dev",
     "dev:client": "turbo dev --filter=client",
@@ -20,25 +30,11 @@
     "build:server": "turbo build --filter=server",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "test": "turbo test",
-    "postinstall": "turbo build --filter=shared --filter=server"
+    "test": "turbo test"
   },
-  "keywords": [
-    "bun",
-    "hono",
-    "react",
-    "vite",
-    "monorepo",
-    "turbo"
-  ],
-  "devDependencies": {
-    "bun-types": "latest",
-    "turbo": "^2.5.5"
-  },
-  "peerDependencies": {
-    "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "hono": "^4.9.4"
-  }
+  "workspaces": [
+    "./server",
+    "./client",
+    "./shared"
+  ]
 }

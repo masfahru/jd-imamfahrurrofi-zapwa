@@ -30,7 +30,10 @@
     "build:server": "turbo build --filter=server",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "test": "turbo test"
+    "test": "turbo test",
+    "db:generate": "cd server && bun run db:generate",
+    "db:migrate": "cd server && bun run db:migrate",
+    "db:seed": "cd server && bun run db:seed"
   },
   "workspaces": [
     "./server",

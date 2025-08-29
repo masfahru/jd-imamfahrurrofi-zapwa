@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
-  DialogContent,
+  DialogContent, DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Admin } from '@/pages/admin/AdminManagementPage';
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface EditAdminDialogProps {
   open: boolean;
@@ -45,6 +46,9 @@ export function EditAdminDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Admin</DialogTitle>
+          <VisuallyHidden>
+            <DialogDescription />
+          </VisuallyHidden>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">

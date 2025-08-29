@@ -1,11 +1,18 @@
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Import useEffect
 import { Zap } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputPassword } from "@/components/ui/input-password";
@@ -29,9 +36,11 @@ export function Login() {
   const { login, isAuthenticated, logout } = useAuthStore();
   const [isVerifying, setIsVerifying] = useState(false);
 
-  if (isAuthenticated) {
-    navigate("/admin", { replace: true });
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/admin", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const form = useForm({
     initialValues: {
@@ -44,7 +53,6 @@ export function Login() {
         value.length > 0 ? null : "Password is required",
     },
   });
-
   const { mutate: submitLogin, isPending } = useMutation<
     unknown,
     Error,
@@ -107,13 +115,17 @@ export function Login() {
 
   const isLoading = isPending || isVerifying;
 
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm">
         <form onSubmit={form.onSubmit((values) => submitLogin(values))}>
           <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <Zap className="h-8 w-8"/>
+              <Zap className="h-8 w-8" />
               <h1 className="text-2xl font-bold">ZapWA</h1>
             </div>
             <CardTitle className="text-2xl">Admin Login</CardTitle>
@@ -121,7 +133,7 @@ export function Login() {
               Enter your credentials to access the admin panel.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 pt-3">
+          <CardContent className="grid gap-4 mt-3">
             <div className="grid gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input

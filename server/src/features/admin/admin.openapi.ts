@@ -2,7 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import {
   requireAuth,
   requireRole,
-} from "../../core/middleware/auth.middleware";
+} from "@server/core/middleware/auth.middleware";
 import {
   ErrorSchema,
   UserSchema,

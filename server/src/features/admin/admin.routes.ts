@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import type { AdminEnv } from "../../core/middleware/auth.middleware";
+import type { AdminEnv } from "@server/core/middleware/auth.middleware";
 import { getAdmins, setUserRole } from "@server/features/admin/admin.service";
 import { getAdminsRoute, setUserRoleRoute } from "./admin.openapi";
 

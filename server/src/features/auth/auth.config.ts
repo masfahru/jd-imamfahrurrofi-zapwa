@@ -1,12 +1,14 @@
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "../../core/db/drizzle";
+import { db } from "@server/core/db/drizzle";
 import { openAPI } from "better-auth/plugins";
-import * as schema from "../../core/db/schema";
+import * as schema from "@server/core/db/schema";
+import { allowedOrigins } from "@server/core/config/origins";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!,
+  trustedOrigins: allowedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {

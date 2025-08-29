@@ -1,4 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { Login } from "./components/Login";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Home from "./components/Home";
 
 function App() {
@@ -6,6 +9,13 @@ function App() {
 		<BrowserRouter>
 			<Routes>
 				<Route path="/" element={<Home />} />
+				<Route path="/login" element={<Login />} />
+
+				<Route path="/admin" element={<ProtectedRoute />}>
+					<Route index element={<AdminDashboard />} />
+				</Route>
+
+				<Route path="*" element={<Navigate to="/" replace />} />
 			</Routes>
 		</BrowserRouter>
 	);

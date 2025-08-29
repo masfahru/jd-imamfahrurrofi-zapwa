@@ -1,5 +1,5 @@
-import { db } from "../../core/db/drizzle";
-import { users, ROLES } from "../../core/db/schema";
+import { db } from "@server/core/db/drizzle";
+import { users, ROLES } from "@server/core/db/schema";
 import { eq } from "drizzle-orm";
 
 /**

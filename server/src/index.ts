@@ -3,6 +3,7 @@ import { Scalar } from '@scalar/hono-api-reference';
 import { cors } from "hono/cors";
 import authRoutes from "./features/auth/auth.routes";
 import adminRoutes from "./features/admin/admin.routes";
+import { allowedOrigins } from "./core/config/origins";
 
 type AppEnv = {
 	// You can define environment variables here for type safety
@@ -10,10 +11,19 @@ type AppEnv = {
 
 export const app = new OpenAPIHono<{ Bindings: AppEnv }>().basePath("/api");
 
-app.use("*", cors());
+app.use(
+	"*",
+	cors({
+		origin: (origin) => {
+			if (allowedOrigins.includes(origin)) {
+				return origin;
+			}
+			return;
+		},
+		credentials: true,
+	}),
+);
 
-// Mount feature-specific routes
-// The OpenAPIHono app will discover routes from the adminRoutes sub-app.
 app.route("/auth", authRoutes);
 app.route("/admin", adminRoutes);
 

@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { ROLES } from "../../core/db/schema";
+import { ROLES } from "@server/core/db/schema";
 
 export const ErrorSchema = z
   .object({

@@ -4,11 +4,13 @@ import {
   getAdmins,
   setUserRole,
   getUsers,
+  addAdmin, // Import the new service
 } from "@server/features/admin/admin.service";
 import {
   getAdminsRoute,
   setUserRoleRoute,
   getUsersRoute,
+  addAdminRoute, // Import the new route definition
 } from "./admin.openapi";
 
 const app = new OpenAPIHono<AdminEnv>();
@@ -16,6 +18,21 @@ const app = new OpenAPIHono<AdminEnv>();
 app.openAPIRegistry.registerComponent("securitySchemes", "BearerAuth", {
   type: "http",
   scheme: "bearer",
+});
+
+// Add the new route handler
+app.openapi(addAdminRoute, async (c) => {
+  const { name, email, password, role } = c.req.valid("json");
+  try {
+    const newUser = await addAdmin(name, email, password, role);
+    return c.json(newUser, 201);
+  } catch (error: any) {
+    if (error.message.includes("already exists")) {
+      return c.json({ error: error.message }, 400);
+    }
+    console.error(error);
+    return c.json({ error: "Failed to create admin user" }, 500);
+  }
 });
 
 app.openapi(getAdminsRoute, async (c) => {
@@ -49,7 +66,7 @@ app.openapi(setUserRoleRoute, async (c) => {
         message: "User role updated successfully",
         user: updatedUser,
       },
-      200
+      200,
     );
   } catch (error: any) {
     if (

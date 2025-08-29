@@ -19,6 +19,14 @@ export const UserSchema = z
   })
   .openapi("User");
 
+// New Schema for adding an admin
+export const AddAdminBodySchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: z.enum(["admin", "super admin"]),
+});
+
 export const UpdateUserRoleParamsSchema = z.object({
   id: z.string().min(1).openapi({
     param: {

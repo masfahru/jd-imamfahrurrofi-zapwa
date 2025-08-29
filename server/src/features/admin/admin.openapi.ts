@@ -9,7 +9,49 @@ import {
   UpdateUserRoleParamsSchema,
   UpdateUserRoleBodySchema,
   UpdateUserRoleResponseSchema,
+  AddAdminBodySchema, // Import new schema
 } from "./admin.schema";
+
+// New Route Definition for adding an admin
+export const addAdminRoute = createRoute({
+  method: "post",
+  path: "/admins",
+  middleware: [requireAuth, requireRole(["super admin"])],
+  security: [{ BearerAuth: [] }],
+  summary: "Create a new admin user",
+  tags: ["Admin"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: AddAdminBodySchema,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      content: { "application/json": { schema: UserSchema } },
+      description: "Admin user created successfully",
+    },
+    400: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Bad Request (e.g., email already exists)",
+    },
+    401: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Unauthorized",
+    },
+    403: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Forbidden",
+    },
+    500: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Internal Server Error",
+    },
+  },
+});
 
 export const getAdminsRoute = createRoute({
   method: "get",

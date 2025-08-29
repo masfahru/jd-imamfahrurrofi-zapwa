@@ -10,7 +10,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Changed path from "/login" to "/admin/login" */}
+        <Route path="/admin/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/admin/login" replace />} />
         <Route path="/" element={<Navigate to="/admin" replace />} />
 
         <Route element={<ProtectedRoute />}>

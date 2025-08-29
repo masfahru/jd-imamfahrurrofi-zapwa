@@ -8,7 +8,7 @@ export function ProtectedRoute() {
     isAuthenticated && user && (user.role === "admin" || user.role === "super admin");
 
   if (!isAuthorized) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
 
   return <Outlet />;

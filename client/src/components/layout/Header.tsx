@@ -12,7 +12,7 @@ export function Header() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/admin/login");
   };
 
   return (

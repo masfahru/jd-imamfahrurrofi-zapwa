@@ -67,8 +67,8 @@ export function AdminDashboard() {
   const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
-    await logout(); // This now calls the server
-    navigate("/login");
+    await logout();
+    navigate("/admin/login");
   };
 
   return (

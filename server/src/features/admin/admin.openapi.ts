@@ -13,7 +13,7 @@ import {
 
 export const getAdminsRoute = createRoute({
   method: "get",
-  path: "/users",
+  path: "/admins",
   middleware: [requireAuth, requireRole(["super admin"])],
   security: [{ BearerAuth: [] }],
   summary: "List all admin and super admin users",
@@ -26,6 +26,37 @@ export const getAdminsRoute = createRoute({
         },
       },
       description: "A list of admin and super admin users",
+    },
+    401: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Unauthorized",
+    },
+    403: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Forbidden",
+    },
+    500: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Internal Server Error",
+    },
+  },
+});
+
+export const getUsersRoute = createRoute({
+  method: "get",
+  path: "/users",
+  middleware: [requireAuth, requireRole(["admin", "super admin"])],
+  security: [{ BearerAuth: [] }],
+  summary: "List all users",
+  tags: ["Admin"],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.array(UserSchema),
+        },
+      },
+      description: "A list of all users in the system",
     },
     401: {
       content: { "application/json": { schema: ErrorSchema } },

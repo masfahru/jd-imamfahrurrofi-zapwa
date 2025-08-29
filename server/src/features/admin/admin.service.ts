@@ -28,7 +28,6 @@ export const setUserRole = async (
       email: users.email,
       role: users.role,
     });
-
   if (!updatedUser) {
     throw new Error("User not found.");
   }
@@ -51,5 +50,22 @@ export const getAdmins = async () => {
     },
     where: (users, { inArray }) =>
       inArray(users.role, ["admin", "super admin"]),
+  });
+};
+
+/**
+ * Fetches all users with role `user` from the database.
+ * @returns A promise that resolves to an array of all users.
+ */
+export const getUsers = async () => {
+  return db.query.users.findMany({
+    columns: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      banned: true,
+    },
+    where: (users, { eq }) => eq(users.role, "user"),
   });
 };

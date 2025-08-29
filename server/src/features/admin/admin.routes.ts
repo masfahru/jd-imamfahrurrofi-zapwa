@@ -1,7 +1,15 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { AdminEnv } from "@server/core/middleware/auth.middleware";
-import { getAdmins, setUserRole } from "@server/features/admin/admin.service";
-import { getAdminsRoute, setUserRoleRoute } from "./admin.openapi";
+import {
+  getAdmins,
+  setUserRole,
+  getUsers,
+} from "@server/features/admin/admin.service";
+import {
+  getAdminsRoute,
+  setUserRoleRoute,
+  getUsersRoute,
+} from "./admin.openapi";
 
 const app = new OpenAPIHono<AdminEnv>();
 
@@ -10,7 +18,6 @@ app.openAPIRegistry.registerComponent("securitySchemes", "BearerAuth", {
   scheme: "bearer",
 });
 
-// Bind controllers to the imported routes
 app.openapi(getAdminsRoute, async (c) => {
   try {
     const admins = await getAdmins();
@@ -18,6 +25,16 @@ app.openapi(getAdminsRoute, async (c) => {
   } catch (error) {
     console.error(error);
     return c.json({ error: "Failed to fetch admins" }, 500);
+  }
+});
+
+app.openapi(getUsersRoute, async (c) => {
+  try {
+    const users = await getUsers();
+    return c.json(users, 200);
+  } catch (error) {
+    console.error(error);
+    return c.json({ error: "Failed to fetch users" }, 500);
   }
 });
 

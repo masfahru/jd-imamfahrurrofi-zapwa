@@ -1,7 +1,7 @@
-import { LayoutDashboard, Users, Settings } from "lucide-react";
+import { LayoutDashboard, Users, ShieldCheck } from "lucide-react";
 
 export const Icons = {
   dashboard: LayoutDashboard,
   users: Users,
-  settings: Settings,
+  admins: ShieldCheck,
 };

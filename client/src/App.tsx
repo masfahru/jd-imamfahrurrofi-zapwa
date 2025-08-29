@@ -6,14 +6,28 @@ import { DashboardPage } from "./pages/admin/DashboardPage";
 import { UserManagementPage } from "./pages/admin/UserManagementPage";
 import { AdminManagementPage } from "./pages/admin/AdminManagementPage";
 
+import { UserLoginPage } from "./pages/user/UserLoginPage";
+import { UserSignupPage } from "./pages/user/UserSignupPage";
+import { UserProtectedRoute } from "./components/UserProtectedRoute";
+import { UserLayout } from "./components/layout/UserLayout";
+import { UserDashboardPage } from "./pages/user/DashboardPage";
+import { PendingLicensePage } from "./pages/user/PendingLicensePage";
+import { ProductsPage } from "./pages/user/ProductsPage";
+import { OrdersPage } from "./pages/user/OrdersPage";
+import { AIAgentsPage } from "./pages/user/AIAgentsPage";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Changed path from "/login" to "/admin/login" */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<Navigate to="/user/login" replace />} />
+
         <Route path="/admin/login" element={<Login />} />
-        <Route path="/login" element={<Navigate to="/admin/login" replace />} />
-        <Route path="/" element={<Navigate to="/admin" replace />} />
+
+        <Route path="/user/login" element={<UserLoginPage />} />
+        <Route path="/user/signup" element={<UserSignupPage />} />
+        <Route path="/pending-license" element={<PendingLicensePage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
@@ -23,7 +37,16 @@ function App() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/admin" replace />} />
+        <Route element={<UserProtectedRoute />}>
+          <Route path="/dashboard" element={<UserLayout />}>
+            <Route index element={<UserDashboardPage />} />
+            <Route path="products" element={<ProductsPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="ai-agents" element={<AIAgentsPage />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

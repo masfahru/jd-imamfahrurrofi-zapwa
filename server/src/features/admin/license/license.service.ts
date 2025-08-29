@@ -11,7 +11,7 @@ import {randomUUIDv7} from "bun";
  * @param length The desired length of the string.
  * @returns A random alphanumeric string.
  */
-const generateRandomString = (length: number): string => {
+export const generateRandomString = (length: number): string => {
   return randomBytes(Math.ceil(length / 2))
     .toString('hex')
     .slice(0, length);

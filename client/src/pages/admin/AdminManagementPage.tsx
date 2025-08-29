@@ -30,19 +30,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { EditAdminDialog } from "@/components/dialogs/edit-admin-dialog";
-import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"; // Import new dialog
+import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { InputPassword } from "@/components/ui/input-password.tsx";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
-// Define a more detailed type for our Admin data
 export interface Admin {
   id: string;
   name: string;
   email: string;
   role: "admin" | "super admin";
   banned: boolean;
+}
+
+interface Pagination {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
 // Dialog Form for adding a new admin
@@ -63,7 +72,7 @@ function AddAdminForm({ setOpen }: { setOpen: (open: boolean) => void }) {
     },
   });
 
-  const { mutate: addAdmin, isPending } = useMutation({
+  const { mutate: addAdmin, isPending } = useMutation<Admin, Error, typeof form.values>({
     mutationFn: async (values: typeof form.values) => {
       const res = await fetch(`${SERVER_URL}/api/admin/admins`, {
         method: "POST",
@@ -86,7 +95,6 @@ function AddAdminForm({ setOpen }: { setOpen: (open: boolean) => void }) {
       form.setErrors({ root: err.message });
     },
   });
-
   return (
     <form onSubmit={form.onSubmit((values) => addAdmin(values))}>
       <DialogHeader>
@@ -147,14 +155,26 @@ export function AdminManagementPage() {
   const { user: currentUser } = useAuthStore();
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false); // Add state for password dialog
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | undefined>();
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const onPageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
+  const onPerPageChange = (newPerPage: number) => {
+    setLimit(newPerPage);
+    setPage(1); // Reset to the first page when page size changes
+  };
+
   // Fetch admins using useQuery
-  const { data: adminData, isLoading, isError, error } = useQuery<{ data: { items: Admin[] } }, Error>({
-    queryKey: ["admins"],
+  const { data: adminData, isLoading, isError, error } = useQuery<{ data: { items: Admin[], pagination: Pagination } }, Error>({
+    queryKey: ["admins", page, limit],
     queryFn: async () => {
-      const res = await fetch(`${SERVER_URL}/api/admin/admins`, {
+      const res = await fetch(`${SERVER_URL}/api/admin/admins?page=${page}&limit=${limit}`, {
         credentials: "include",
       });
       if (!res.ok) {
@@ -164,6 +184,7 @@ export function AdminManagementPage() {
     },
   });
   const admins = adminData?.data?.items || [];
+  const pagination = adminData?.data?.pagination;
 
   // Mutation for deleting an admin
   const { mutate: deleteAdmin } = useMutation({
@@ -181,9 +202,8 @@ export function AdminManagementPage() {
       queryClient.invalidateQueries({ queryKey: ["admins"] });
     },
   });
-
   // Mutation for updating an admin
-  const { mutate: updateAdmin } = useMutation({
+  const { mutate: updateAdmin } = useMutation<Admin, Error, Omit<Admin, 'role' | 'banned'>>({
     mutationFn: async (admin: Omit<Admin, 'role' | 'banned'>) => {
       const res = await fetch(`${SERVER_URL}/api/admin/admins/${admin.id}`, {
         method: "PUT",
@@ -203,7 +223,7 @@ export function AdminManagementPage() {
     },
   });
 
-  const { mutate: changePassword, isPending: isChangingPassword } = useMutation({
+  const { mutate: changePassword, isPending: isChangingPassword } = useMutation<{ success: boolean }, Error, { adminId: string, password: string }>({
     mutationFn: async ({ adminId, password }: { adminId: string, password: string }) => {
       const res = await fetch(`${SERVER_URL}/api/admin/admins/${adminId}/password`, {
         method: 'PUT',
@@ -229,21 +249,26 @@ export function AdminManagementPage() {
     setSelectedAdmin(admin);
     setIsEditDialogOpen(true);
   };
-
   const handleSave = (updatedAdmin: Admin) => {
     updateAdmin(updatedAdmin);
   };
-
   const handleOpenPasswordDialog = (admin: Admin) => {
     setSelectedAdmin(admin);
     setIsPasswordDialogOpen(true);
   };
-
   const handleSavePassword = (adminId: string, password: string) => {
     changePassword({ adminId, password });
   };
 
   const columns: ColumnDef<Admin>[] = [
+    {
+      id: "index",
+      header: "No.",
+      cell: ({ row }) => {
+        const startIndex = (page - 1) * limit;
+        return startIndex + row.index + 1;
+      },
+    },
     { accessorKey: "name", header: "Name" },
     { accessorKey: "email", header: "Email" },
     {
@@ -261,7 +286,6 @@ export function AdminManagementPage() {
               variant="outline"
               size="icon"
               onClick={() => handleOpenPasswordDialog(admin)}
-              // Disable if the target is a super admin who isn't the current user
               disabled={admin.role === 'super admin' && admin.id !== currentUser?.id}
             >
               <KeyRound className="h-4 w-4"/>
@@ -298,6 +322,7 @@ export function AdminManagementPage() {
 
   if (isLoading) return <div>Loading admins...</div>;
   if (isError) return <div>Error fetching admins: {error.message}</div>;
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
@@ -315,6 +340,16 @@ export function AdminManagementPage() {
       </div>
       <DataTableToolbar/>
       <DataTable columns={columns} data={admins}/>
+      {pagination && (
+        <DataTablePagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalCount={pagination.totalItems}
+          itemPerPage={limit}
+          onPageChange={onPageChange}
+          onPerPageChange={onPerPageChange}
+        />
+      )}
       <EditAdminDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}

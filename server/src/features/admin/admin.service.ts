@@ -1,10 +1,10 @@
 import { db } from "@server/core/db/drizzle";
 import { users, accounts, ROLES } from "@server/core/db/schema";
-import { and, count, eq, inArray } from "drizzle-orm";
+// [!code --] import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray, ne } from "drizzle-orm";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
 import { HTTPException } from "hono/http-exception";
-
 /**
  * Adds a new admin or super admin user to the database.
  * @param name The name of the new admin.
@@ -23,7 +23,6 @@ export const addAdmin = async (
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
-
   if (existingUser) {
     throw new HTTPException(400, { message: "User with this email already exists." });
   }
@@ -31,7 +30,6 @@ export const addAdmin = async (
   const authContext = await auth.$context;
   const passwordHasher = authContext.password;
   const generateId = authContext.generateId;
-
   if (typeof generateId !== "function" || !passwordHasher) {
     throw new HTTPException(500, { message: "Auth context is not properly configured." });
   }
@@ -69,7 +67,6 @@ export const addAdmin = async (
 
       return insertedUser;
     });
-
   if (!newUser) {
     throw new HTTPException(500, { message: "Failed to create new admin user." });
   }
@@ -103,14 +100,12 @@ export const setUserRole = async (
       email: users.email,
       role: users.role,
     });
-
   if (!updatedUser) {
     throw new HTTPException(404, { message: "User not found." });
   }
 
   return updatedUser;
 };
-
 /**
  * Fetches a paginated list of users with 'admin' or 'super admin' roles.
  * @param page - The current page number (1-based).
@@ -125,7 +120,6 @@ export const getAdmins = async (page: number, limit: number) => {
   const totalItemsResult = await db.select({ value: count() }).from(users).where(whereClause);
   const totalItems = totalItemsResult[0] ? totalItemsResult[0].value: 0;
   const totalPages = Math.ceil(totalItems / limit);
-
   // Get the admins for the current page
   const adminUsers = await db.query.users.findMany({
     columns: {
@@ -139,7 +133,6 @@ export const getAdmins = async (page: number, limit: number) => {
     offset,
     limit,
   });
-
   return {
     items: adminUsers,
     pagination: {
@@ -167,7 +160,6 @@ export const getUsers = async (page: number, limit: number) => {
   const totalItemsResult = await db.select({ value: count() }).from(users).where(whereClause);
   const totalItems = totalItemsResult[0] ? totalItemsResult[0].value : 0;
   const totalPages = Math.ceil(totalItems / limit);
-
   // Get the users for the current page
   const userList = await db.query.users.findMany({
     columns: {
@@ -181,7 +173,6 @@ export const getUsers = async (page: number, limit: number) => {
     offset,
     limit,
   });
-
   return {
     items: userList,
     pagination: {
@@ -206,9 +197,8 @@ export const getUsers = async (page: number, limit: number) => {
 export const updateAdmin = async (adminId: string, name: string, email: string) => {
   // Check if the new email is already taken by another user
   const existingUserWithEmail = await db.query.users.findFirst({
-    where: and(eq(users.email, email), eq(users.id, adminId)),
+    where: and(eq(users.email, email), ne(users.id, adminId)),
   });
-
   if (existingUserWithEmail) {
     throw new HTTPException(400, { message: 'Email is already in use by another account.' });
   }
@@ -224,14 +214,12 @@ export const updateAdmin = async (adminId: string, name: string, email: string) 
       role: users.role,
       banned: users.banned,
     });
-
   if (!updatedAdmin) {
     throw new HTTPException(404, { message: 'Admin not found.' });
   }
 
   return updatedAdmin;
 };
-
 /**
  * Deletes an admin user from the database.
  * @param adminId The ID of the admin to delete.

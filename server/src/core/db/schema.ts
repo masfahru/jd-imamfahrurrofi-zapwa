@@ -52,3 +52,12 @@ export const sessions = pgTable("session", {
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
+
+export const licenses = pgTable("license", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  // When a user is deleted, their license becomes unassigned (null)
+  userId: text("userId").references(() => users.id, { onDelete: "set null" }).unique(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
+});

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputPassword } from "@/components/ui/input-password";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -146,9 +147,8 @@ export function Login() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <InputPassword
                 id="password"
-                type="password"
                 required
                 {...form.getInputProps("password")}
               />

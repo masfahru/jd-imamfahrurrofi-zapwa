@@ -40,7 +40,6 @@ export const UpdateUserRoleResponseSchema = createSuccessResponseSchema(
   }),
 );
 
-
 export const UpdateAdminParamsSchema = z.object({
   id: z.string().openapi({
     param: { name: "id", in: "path" },
@@ -58,4 +57,15 @@ export const DeleteAdminParamsSchema = z.object({
     param: { name: "id", in: "path" },
     example: "user-456",
   }),
+});
+
+export const ChangePasswordParamsSchema = z.object({
+  id: z.string().openapi({
+    param: { name: 'id', in: 'path' },
+    example: 'user-123',
+  }),
+});
+
+export const ChangePasswordBodySchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });

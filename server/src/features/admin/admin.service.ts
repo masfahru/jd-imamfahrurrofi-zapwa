@@ -1,10 +1,10 @@
 import { db } from "@server/core/db/drizzle";
 import { users, accounts, ROLES } from "@server/core/db/schema";
-// [!code --] import { and, count, eq, inArray } from "drizzle-orm";
 import { and, count, eq, inArray, ne } from "drizzle-orm";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
 import { HTTPException } from "hono/http-exception";
+
 /**
  * Adds a new admin or super admin user to the database.
  * @param name The name of the new admin.
@@ -106,6 +106,7 @@ export const setUserRole = async (
 
   return updatedUser;
 };
+
 /**
  * Fetches a paginated list of users with 'admin' or 'super admin' roles.
  * @param page - The current page number (1-based).
@@ -120,6 +121,7 @@ export const getAdmins = async (page: number, limit: number) => {
   const totalItemsResult = await db.select({ value: count() }).from(users).where(whereClause);
   const totalItems = totalItemsResult[0] ? totalItemsResult[0].value: 0;
   const totalPages = Math.ceil(totalItems / limit);
+
   // Get the admins for the current page
   const adminUsers = await db.query.users.findMany({
     columns: {
@@ -160,6 +162,7 @@ export const getUsers = async (page: number, limit: number) => {
   const totalItemsResult = await db.select({ value: count() }).from(users).where(whereClause);
   const totalItems = totalItemsResult[0] ? totalItemsResult[0].value : 0;
   const totalPages = Math.ceil(totalItems / limit);
+
   // Get the users for the current page
   const userList = await db.query.users.findMany({
     columns: {
@@ -220,6 +223,7 @@ export const updateAdmin = async (adminId: string, name: string, email: string) 
 
   return updatedAdmin;
 };
+
 /**
  * Deletes an admin user from the database.
  * @param adminId The ID of the admin to delete.
@@ -238,4 +242,61 @@ export const deleteAdmin = async (adminId: string) => {
   }
 
   return { id: deletedUser.id };
+};
+
+/**
+ * Changes the password for a given admin user.
+ * A super admin can change their own password or any 'admin' user's password.
+ * They cannot change another super admin's password.
+ * @param targetAdminId The ID of the admin whose password is to be changed.
+ * @param newPassword The new password.
+ * @param currentUserId The ID of the user performing the action.
+ * @returns An object indicating success.
+ * @throws Will throw an HTTPException for various error conditions.
+ */
+export const changeAdminPassword = async (
+  targetAdminId: string,
+  newPassword: string,
+  currentUserId: string,
+) => {
+  const targetUser = await db.query.users.findFirst({
+    where: eq(users.id, targetAdminId),
+  });
+
+  if (!targetUser) {
+    throw new HTTPException(404, { message: 'User not found.' });
+  }
+
+  // Security check: super admin can't change another super admin's password
+  if (targetUser.role === 'super admin' && targetAdminId !== currentUserId) {
+    throw new HTTPException(403, {
+      message: "Forbidden: Super admins can only change their own password.",
+    });
+  }
+
+  // Ensure the target is actually an admin or super admin
+  if (targetUser.role !== 'admin' && targetUser.role !== 'super admin') {
+    throw new HTTPException(400, { message: 'Target user is not an admin.' });
+  }
+
+  const authContext = await auth.$context;
+  const passwordHasher = authContext.password;
+
+  if (!passwordHasher) {
+    throw new HTTPException(500, { message: 'Password hasher is not configured.' });
+  }
+
+  const hashedPassword = await passwordHasher.hash(newPassword);
+
+  await db
+    .update(accounts)
+    .set({ password: hashedPassword, updatedAt: new Date() })
+    .where(
+      and(
+        eq(accounts.userId, targetAdminId),
+        eq(accounts.providerId, 'credential'),
+      ),
+    );
+
+  return { success: true };
 };

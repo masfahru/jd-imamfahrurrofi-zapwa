@@ -8,6 +8,7 @@ import {
   addAdmin,
   updateAdmin,
   deleteAdmin,
+  changeAdminPassword,
 } from '@server/features/admin/admin.service';
 import {
   getAdminsRoute,
@@ -16,6 +17,7 @@ import {
   addAdminRoute,
   updateAdminRoute,
   deleteAdminRoute,
+  changePasswordRoute,
 } from './admin.openapi';
 import { jsonResponse } from '@server/core/utils/response'; // [!code ++]
 
@@ -86,4 +88,15 @@ app.openapi(deleteAdminRoute, async (c) => {
 
   return jsonResponse(c, 'Admin deleted successfully', result, 200);
 });
+
+app.openapi(changePasswordRoute, async (c) => {
+  const { id } = c.req.valid('param');
+  const { password } = c.req.valid('json');
+  const currentUser = c.get('user');
+
+  const result = await changeAdminPassword(id, password, currentUser.id);
+
+  return jsonResponse(c, 'Password updated successfully', result, 200);
+});
+
 export default app;

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@mantine/form";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, PlusCircle, Trash2 } from "lucide-react";
+import { Edit, KeyRound, PlusCircle, Trash2 } from "lucide-react";
+import { useAuthStore } from "@/lib/authStore";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -27,15 +28,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { EditAdminDialog } from "@/components/dialogs/edit-admin-dialog";
+import { ChangePasswordDialog } from "@/components/dialogs/change-password-dialog"; // Import new dialog
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { InputPassword } from "@/components/ui/input-password.tsx";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -102,24 +99,30 @@ function AddAdminForm({ setOpen }: { setOpen: (open: boolean) => void }) {
         {/* Form Fields */}
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="name" className="text-right">Name</Label>
-          <Input id="name" {...form.getInputProps("name")} className="col-span-3" />
+          <Input id="name" {...form.getInputProps("name")} className="col-span-3"/>
           {form.errors.name && <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.name}</p>}
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="email" className="text-right">Email</Label>
-          <Input id="email" type="email" {...form.getInputProps("email")} className="col-span-3" />
+          <Input id="email" type="email" {...form.getInputProps("email")} className="col-span-3"/>
           {form.errors.email && <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.email}</p>}
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="password" className="text-right">Password</Label>
-          <Input id="password" type="password" {...form.getInputProps("password")} className="col-span-3" />
-          {form.errors.password && <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.password}</p>}
+          <InputPassword
+            id="password"
+            {...form.getInputProps("password")}
+            className="col-span-3"
+          />
+          {form.errors.password &&
+            <p className="col-span-4 text-sm text-red-500 text-center">{form.errors.password}</p>}
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="role" className="text-right">Role</Label>
-          <Select onValueChange={(value) => form.setFieldValue("role", value as "admin" | "super admin")} defaultValue={form.values.role}>
+          <Select onValueChange={(value) => form.setFieldValue("role", value as "admin" | "super admin")}
+                  defaultValue={form.values.role}>
             <SelectTrigger className="col-span-3">
-              <SelectValue placeholder="Select a role" />
+              <SelectValue placeholder="Select a role"/>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="admin">Admin</SelectItem>
@@ -141,8 +144,10 @@ function AddAdminForm({ setOpen }: { setOpen: (open: boolean) => void }) {
 // Main Page Component
 export function AdminManagementPage() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuthStore();
   const [isAddDialogOpen, setAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false); // Add state for password dialog
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | undefined>();
 
   // Fetch admins using useQuery
@@ -198,6 +203,28 @@ export function AdminManagementPage() {
     },
   });
 
+  const { mutate: changePassword, isPending: isChangingPassword } = useMutation({
+    mutationFn: async ({ adminId, password }: { adminId: string, password: string }) => {
+      const res = await fetch(`${SERVER_URL}/api/admin/admins/${adminId}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to change password');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsPasswordDialogOpen(false);
+    },
+    onError: (err) => {
+      console.error(err);
+    },
+  });
+
   const handleEdit = (admin: Admin) => {
     setSelectedAdmin(admin);
     setIsEditDialogOpen(true);
@@ -205,6 +232,15 @@ export function AdminManagementPage() {
 
   const handleSave = (updatedAdmin: Admin) => {
     updateAdmin(updatedAdmin);
+  };
+
+  const handleOpenPasswordDialog = (admin: Admin) => {
+    setSelectedAdmin(admin);
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handleSavePassword = (adminId: string, password: string) => {
+    changePassword({ adminId, password });
   };
 
   const columns: ColumnDef<Admin>[] = [
@@ -221,13 +257,22 @@ export function AdminManagementPage() {
         const admin = row.original;
         return (
           <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleOpenPasswordDialog(admin)}
+              // Disable if the target is a super admin who isn't the current user
+              disabled={admin.role === 'super admin' && admin.id !== currentUser?.id}
+            >
+              <KeyRound className="h-4 w-4"/>
+            </Button>
             <Button variant="outline" size="icon" onClick={() => handleEdit(admin)}>
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4"/>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="icon" disabled={admin.id === '1'}>
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4"/>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -253,7 +298,6 @@ export function AdminManagementPage() {
 
   if (isLoading) return <div>Loading admins...</div>;
   if (isError) return <div>Error fetching admins: {error.message}</div>;
-
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
@@ -261,21 +305,28 @@ export function AdminManagementPage() {
         <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Admin
+              <PlusCircle className="mr-2 h-4 w-4"/> Add Admin
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
-            <AddAdminForm setOpen={setAddDialogOpen} />
+            <AddAdminForm setOpen={setAddDialogOpen}/>
           </DialogContent>
         </Dialog>
       </div>
-      <DataTableToolbar />
-      <DataTable columns={columns} data={admins} />
+      <DataTableToolbar/>
+      <DataTable columns={columns} data={admins}/>
       <EditAdminDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         admin={selectedAdmin}
         onSave={handleSave}
+      />
+      <ChangePasswordDialog
+        open={isPasswordDialogOpen}
+        onOpenChange={setIsPasswordDialogOpen}
+        admin={selectedAdmin}
+        onSave={handleSavePassword}
+        isSaving={isChangingPassword}
       />
     </main>
   );

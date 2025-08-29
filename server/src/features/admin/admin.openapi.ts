@@ -12,10 +12,11 @@ import {
   UpdateUserRoleParamsSchema,
   UpdateUserRoleBodySchema,
   UpdateUserRoleResponseSchema,
+  ChangePasswordParamsSchema,
+  ChangePasswordBodySchema,
 } from "./admin.schema";
 import { createPaginatedResponseSchema, createSuccessResponseSchema, ErrorSchema } from '@server/core/utils/response';
 
-// New Route Definition for adding an admin
 export const addAdminRoute = createRoute({
   method: "post",
   path: "/admins",
@@ -55,6 +56,7 @@ export const addAdminRoute = createRoute({
     },
   },
 });
+
 export const getAdminsRoute = createRoute({
   method: "get",
   path: "/admins",
@@ -85,7 +87,7 @@ export const getAdminsRoute = createRoute({
     },
   },
 });
-// NEW: Definition for updating an admin
+
 export const updateAdminRoute = createRoute({
   method: 'put',
   path: '/admins/{id}',
@@ -130,7 +132,7 @@ export const updateAdminRoute = createRoute({
     },
   },
 });
-// NEW: Definition for deleting an admin
+
 export const deleteAdminRoute = createRoute({
   method: 'delete',
   path: '/admins/{id}',
@@ -172,6 +174,7 @@ export const deleteAdminRoute = createRoute({
     },
   },
 });
+
 export const getUsersRoute = createRoute({
   method: "get",
   path: "/users",
@@ -202,6 +205,7 @@ export const getUsersRoute = createRoute({
     },
   },
 });
+
 export const setUserRoleRoute = createRoute({
   method: "post",
   path: "/users/{id}/role",
@@ -240,6 +244,51 @@ export const setUserRoleRoute = createRoute({
     403: {
       content: { "application/json": { schema: ErrorSchema } },
       description: "Forbidden",
+    },
+    500: {
+      content: { "application/json": { schema: ErrorSchema } },
+      description: "Internal Server Error",
+    },
+  },
+});
+
+export const changePasswordRoute = createRoute({
+  method: 'put',
+  path: '/admins/{id}/password',
+  middleware: [requireAuth, requireRole(['super admin'])],
+  security: [{ BearerAuth: [] }],
+  summary: "Update an admin's password",
+  tags: ['Admin'],
+  request: {
+    params: ChangePasswordParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ChangePasswordBodySchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: createSuccessResponseSchema(z.object({ success: z.boolean() })),
+        },
+      },
+      description: 'Password updated successfully',
+    },
+    400: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Bad Request',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Forbidden (e.g., trying to change another super admin password)',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Admin not found',
     },
     500: {
       content: { "application/json": { schema: ErrorSchema } },

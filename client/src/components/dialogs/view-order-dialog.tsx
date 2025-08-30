@@ -49,6 +49,7 @@ const formatCurrency = (amount: number) => {
 
 export function ViewOrderDialog({ open, onOpenChange, order }: ViewOrderDialogProps) {
   if (!order) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
@@ -77,16 +78,18 @@ export function ViewOrderDialog({ open, onOpenChange, order }: ViewOrderDialogPr
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Unit Price</TableHead>
-                  <TableHead className="text-right">Subtotal</TableHead>
+                  <TableHead className="w-[50%]">Product</TableHead>
+                  <TableHead className="w-[15%] text-right">Quantity</TableHead>
+                  <TableHead className="w-[20%] text-right">Unit Price</TableHead>
+                  <TableHead className="w-[15%] text-right">Subtotal</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {order.items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.productName}</TableCell>
+                    <TableCell className="font-medium whitespace-normal break-words">
+                      {item.productName}
+                    </TableCell>
                     <TableCell className="text-right">{item.quantity}</TableCell>
                     <TableCell className="text-right">{formatCurrency(item.priceAmount1000 / 1000)}</TableCell>
                     <TableCell className="text-right">{formatCurrency((item.priceAmount1000 / 1000) * item.quantity)}</TableCell>

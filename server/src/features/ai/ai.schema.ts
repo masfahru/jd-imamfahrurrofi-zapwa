@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import {createPaginatedResponseSchema, createSuccessResponseSchema} from "@server/core/utils/response";
+import { createPaginatedResponseSchema, createSuccessResponseSchema } from "@server/core/utils/response";
 
 // Request body schema
 export const ChatRequestSchema = z.object({

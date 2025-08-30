@@ -1,7 +1,7 @@
-import {z} from "zod";
-import {tool} from '@langchain/core/tools';
-import {createOrder as createOrderService} from "@server/features/order/order.service";
-import type {Product} from "@server/core/db/schema";
+import { z } from "zod";
+import { tool } from '@langchain/core/tools';
+import { createOrder as createOrderService } from "@server/features/order/order.service";
+import type { Product } from "@server/core/db/schema";
 
 const createLocalOrderToolSchema = z.object({
   customer: z.object({
@@ -25,14 +25,14 @@ export const getCreateOrderTool = (licenseId: string, productCatalog: Product[])
 
   const executeCreateOrder = async (input: unknown) => {
     try {
-      const {customer, cart} = createLocalOrderToolSchema.parse(input);
+      const { customer, cart } = createLocalOrderToolSchema.parse(input);
       const itemsWithIds = cart.map(item => {
         const product = productCatalog.find(p => p.id === item.productId);
         if (!product) {
           // This provides a clear feedback loop to the AI if it hallucinates an ID.
           return `Product with ID "${item.productId}" not found in catalog. Please use a valid ID.`;
         }
-        return {productId: product.id, quantity: item.qty};
+        return { productId: product.id, quantity: item.qty };
       });
 
       // Check if any product was not found.

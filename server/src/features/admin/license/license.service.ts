@@ -1,10 +1,10 @@
 import { db } from "@server/core/db/drizzle";
-import {customers, licenses, orders, products, users} from "@server/core/db/schema";
-import { and, count, eq, isNull, ne } from "drizzle-orm";
+import { customers, licenses, orders, products, users } from "@server/core/db/schema";
+import { and, count, eq, ne } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "@server/features/auth/auth.config";
 import { randomBytes } from "crypto";
-import {randomUUIDv7} from "bun";
+import { randomUUIDv7 } from "bun";
 
 /**
  * Generates a cryptographically secure random alphanumeric string.
@@ -196,5 +196,8 @@ export const migrateLicenseData = async (sourceLicenseId: string, targetLicenseI
 
   await db.delete(licenses).where(eq(licenses.id, sourceLicenseId));
 
-  return { success: true, message: `Data from license ${sourceLicenseId} successfully migrated to ${targetLicenseId}. Old license has been deleted.` };
+  return {
+    success: true,
+    message: `Data from license ${sourceLicenseId} successfully migrated to ${targetLicenseId}. Old license has been deleted.`
+  };
 };

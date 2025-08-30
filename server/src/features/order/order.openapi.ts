@@ -1,11 +1,13 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import {requireAuth, requireLicense, requireRole} from "@server/core/middleware/auth.middleware";
+import { requireAuth, requireLicense } from "@server/core/middleware/auth.middleware";
 import { createSuccessResponseSchema, ErrorSchema } from "@server/core/utils/response";
 import {
   CreateOrderBodySchema,
-  GetOrdersQuerySchema, OrderIdParamsSchema,
+  GetOrdersQuerySchema,
+  OrderIdParamsSchema,
   PaginatedOrdersResponseSchema,
-  SingleOrderResponseSchema, UpdateOrderBodySchema
+  SingleOrderResponseSchema,
+  UpdateOrderBodySchema
 } from "./order.schema";
 
 const userOnly = [requireAuth, requireLicense];
@@ -20,7 +22,10 @@ export const createOrderRoute = createRoute({
     body: { content: { "application/json": { schema: CreateOrderBodySchema } } },
   },
   responses: {
-    201: { description: "Order created successfully", content: { "application/json": { schema: SingleOrderResponseSchema } } },
+    201: {
+      description: "Order created successfully",
+      content: { "application/json": { schema: SingleOrderResponseSchema } }
+    },
     400: { description: "Bad Request", content: { "application/json": { schema: ErrorSchema } } },
   },
 });
@@ -74,7 +79,10 @@ export const updateOrderRoute = createRoute({
     body: { content: { "application/json": { schema: UpdateOrderBodySchema } } },
   },
   responses: {
-    200: { description: "Order updated successfully", content: { "application/json": { schema: SingleOrderResponseSchema } } },
+    200: {
+      description: "Order updated successfully",
+      content: { "application/json": { schema: SingleOrderResponseSchema } }
+    },
     404: { description: "Order not found", content: { "application/json": { schema: ErrorSchema } } },
   },
 });

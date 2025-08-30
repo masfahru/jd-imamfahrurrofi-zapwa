@@ -1,15 +1,15 @@
-import {db} from "@server/core/db/drizzle";
-import {aiAgents, chatMessages} from "@server/core/db/schema";
-import {getProductsByLicenseId} from "@server/features/product/product.service";
-import {ChatOpenAI} from "@langchain/openai";
-import {AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage} from "@langchain/core/messages";
-import {auth} from "@server/features/auth/auth.config";
-import {randomUUIDv7} from "bun";
-import {getCreateOrderTool} from "./ai.tools";
-import {formatProductsForPrompt, getSystemPrompt} from "./ai.prompts";
-import {closeSession, getOrCreateSession} from "./ai.session.manager";
-import {HTTPException} from "hono/http-exception";
-import {and, count, desc, eq, ne} from "drizzle-orm";
+import { db } from "@server/core/db/drizzle";
+import { aiAgents, chatMessages } from "@server/core/db/schema";
+import { getProductsByLicenseId } from "@server/features/product/product.service";
+import { ChatOpenAI } from "@langchain/openai";
+import { AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
+import { auth } from "@server/features/auth/auth.config";
+import { randomUUIDv7 } from "bun";
+import { getCreateOrderTool } from "./ai.tools";
+import { formatProductsForPrompt, getSystemPrompt } from "./ai.prompts";
+import { closeSession, getOrCreateSession } from "./ai.session.manager";
+import { HTTPException } from "hono/http-exception";
+import { and, count, desc, eq, ne } from "drizzle-orm";
 
 /**
  * Main handler for processing an incoming chat message from a customer.
@@ -58,7 +58,7 @@ export async function handleChatMessage(
   history.push(new HumanMessage(userMessage));
 
   await db.insert(chatMessages).values({
-    id: generateId({model: 'message'}) || randomUUIDv7(),
+    id: generateId({ model: 'message' }) || randomUUIDv7(),
     sessionId: currentSessionId,
     role: 'user',
     content: userMessage,
@@ -102,7 +102,7 @@ export async function handleChatMessage(
   }
 
   await db.insert(chatMessages).values({
-    id: generateId({model: 'message'}) || randomUUIDv7(),
+    id: generateId({ model: 'message' }) || randomUUIDv7(),
     sessionId: newSessionIdForResponse,
     role: 'assistant',
     content: assistantReply,
@@ -120,10 +120,10 @@ export async function handleChatMessage(
  */
 export const createAgent = async (licenseId: string, data: { name: string; behavior: string }) => {
   const generateId = (await auth.$context).generateId;
-  const newAgentId = generateId({model: "ai_agent"}) || randomUUIDv7();
+  const newAgentId = generateId({ model: "ai_agent" }) || randomUUIDv7();
 
   // Check if this will be the first agent for the license
-  const agentCountResult = await db.select({value: count()}).from(aiAgents).where(eq(aiAgents.licenseId, licenseId));
+  const agentCountResult = await db.select({ value: count() }).from(aiAgents).where(eq(aiAgents.licenseId, licenseId));
   const isFirstAgent = (agentCountResult[0]?.value ?? 0) === 0;
 
   const [newAgent] = await db
@@ -137,7 +137,7 @@ export const createAgent = async (licenseId: string, data: { name: string; behav
     .returning();
 
   if (!newAgent) {
-    throw new HTTPException(500, {message: "Failed to create AI agent."});
+    throw new HTTPException(500, { message: "Failed to create AI agent." });
   }
   return newAgent;
 };
@@ -151,7 +151,7 @@ export const setActiveAgent = async (licenseId: string, agentId: string) => {
   });
 
   if (!agentToActivate) {
-    throw new HTTPException(404, {message: "AI Agent not found."});
+    throw new HTTPException(404, { message: "AI Agent not found." });
   }
 
   // Use a transaction to ensure atomicity
@@ -159,18 +159,18 @@ export const setActiveAgent = async (licenseId: string, agentId: string) => {
     // Deactivate all other agents for this license
     await tx
       .update(aiAgents)
-      .set({isActive: false, updatedAt: new Date()})
+      .set({ isActive: false, updatedAt: new Date() })
       .where(and(eq(aiAgents.licenseId, licenseId), ne(aiAgents.id, agentId)));
 
     // Activate the selected agent
     await tx
       .update(aiAgents)
-      .set({isActive: true, updatedAt: new Date()})
+      .set({ isActive: true, updatedAt: new Date() })
       .where(eq(aiAgents.id, agentId));
   });
 
   // Return the newly activated agent
-  return db.query.aiAgents.findFirst({where: eq(aiAgents.id, agentId)});
+  return db.query.aiAgents.findFirst({ where: eq(aiAgents.id, agentId) });
 };
 
 /**
@@ -188,7 +188,7 @@ export const getAgentsByLicenseId = async (
 
   // Get total count for pagination metadata
   const totalItemsResult = await db
-    .select({value: count()})
+    .select({ value: count() })
     .from(aiAgents)
     .where(whereClause);
   const totalItems = totalItemsResult[0]?.value ?? 0;
@@ -221,12 +221,12 @@ export const getAgentsByLicenseId = async (
 export const updateAgent = async (licenseId: string, agentId: string, data: { name?: string; behavior?: string }) => {
   const [updatedAgent] = await db
     .update(aiAgents)
-    .set({...data, updatedAt: new Date()})
+    .set({ ...data, updatedAt: new Date() })
     .where(and(eq(aiAgents.id, agentId), eq(aiAgents.licenseId, licenseId)))
     .returning();
 
   if (!updatedAgent) {
-    throw new HTTPException(404, {message: "AI Agent not found or you do not have permission to edit it."});
+    throw new HTTPException(404, { message: "AI Agent not found or you do not have permission to edit it." });
   }
   return updatedAgent;
 };
@@ -241,21 +241,21 @@ export const deleteAgent = async (licenseId: string, agentId: string) => {
   });
 
   if (!agent) {
-    throw new HTTPException(404, {message: "AI Agent not found."});
+    throw new HTTPException(404, { message: "AI Agent not found." });
   }
 
   if (agent.isActive) {
-    throw new HTTPException(400, {message: "Cannot delete the active agent. Please activate another agent first."});
+    throw new HTTPException(400, { message: "Cannot delete the active agent. Please activate another agent first." });
   }
 
   const [deletedAgent] = await db
     .delete(aiAgents)
     .where(eq(aiAgents.id, agentId)) // licenseId check already done
-    .returning({id: aiAgents.id});
+    .returning({ id: aiAgents.id });
 
   if (!deletedAgent) {
     // This case should ideally not be reached due to the check above
-    throw new HTTPException(404, {message: "AI Agent not found or you do not have permission to delete it."});
+    throw new HTTPException(404, { message: "AI Agent not found or you do not have permission to delete it." });
   }
   return deletedAgent;
 };

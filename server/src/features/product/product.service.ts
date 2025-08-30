@@ -1,6 +1,6 @@
 import { db } from "@server/core/db/drizzle";
 import { products } from "@server/core/db/schema";
-import { and, count, eq, ilike, or, desc } from "drizzle-orm";
+import { and, count, eq, ilike, or } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";

@@ -11,15 +11,13 @@ import productRoutes from "@server/features/product/product.routes";
 import orderRoutes from "@server/features/order/order.routes";
 import aiRoutes from "@server/features/ai/ai.routes";
 
-type AppEnv = {
-	// You can define environment variables here for type safety
-};
+type AppEnv = object;
 export const app = new OpenAPIHono<{ Bindings: AppEnv }>().basePath("/api");
 
 app.use(logger());
 app.onError((err, c) => {
 	if (err instanceof HTTPException) {
-		return c.json({ message: err.message }, err.status as any);
+		return c.json({ message: err.message }, err.status as never);
 	}
 	console.error("Unhandled Application Error:", err);
 	return c.json({ message: "Internal Server Error" }, 500);

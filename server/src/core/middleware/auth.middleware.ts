@@ -10,7 +10,7 @@ export type User = Session["user"];
 
 // Define the Admin Environment type here and export it.
 export type AdminEnv = {
-  Bindings: {}; // Add this line to make the Env complete
+  Bindings: object; // Add this line to make the Env complete
   Variables: {
     session: Session;
     user: User;
@@ -22,7 +22,7 @@ type License = typeof licenses.$inferSelect;
 
 // Define the User Environment with License
 export type UserEnv = {
-  Bindings: {};
+  Bindings: object;
   Variables: {
     session: Session;
     user: User;

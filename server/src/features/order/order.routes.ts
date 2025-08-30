@@ -1,20 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { type UserEnv, requireAuth, requireLicense } from "@server/core/middleware/auth.middleware";
+import { type UserEnv } from "@server/core/middleware/auth.middleware";
 import { jsonResponse } from "@server/core/utils/response";
-import {
-  createOrderRoute,
-  deleteOrderRoute,
-  getOrderByIdRoute,
-  getOrdersRoute,
-  updateOrderRoute
-} from "./order.openapi";
-import {
-  createOrder,
-  deleteOrder,
-  getOrderById,
-  getOrdersByLicenseId, // Renamed
-  updateOrderStatus
-} from "./order.service";
+import { createOrderRoute, deleteOrderRoute, getOrderByIdRoute, getOrdersRoute, updateOrderRoute } from "./order.openapi";
+import { createOrder, deleteOrder, getOrderById, getOrdersByLicenseId, updateOrderStatus } from "./order.service";
 
 const app = new OpenAPIHono<UserEnv>();
 

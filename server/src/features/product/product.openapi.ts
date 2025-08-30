@@ -1,11 +1,10 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import {requireAuth, requireLicense, requireRole} from "@server/core/middleware/auth.middleware";
-import {createSuccessResponseSchema, ErrorSchema} from "@server/core/utils/response";
+import { requireAuth, requireLicense } from "@server/core/middleware/auth.middleware";
+import { createSuccessResponseSchema, ErrorSchema } from "@server/core/utils/response";
 import {
   CreateProductBodySchema,
   GetProductsQuerySchema,
   PaginatedProductsResponseSchema,
-  ProductSchema,
   SingleProductResponseSchema,
   UpdateProductBodySchema,
 } from "./product.schema";
@@ -22,7 +21,10 @@ export const createProductRoute = createRoute({
     body: { content: { "application/json": { schema: CreateProductBodySchema } } },
   },
   responses: {
-    201: { description: "Product created successfully", content: { "application/json": { schema: SingleProductResponseSchema } } },
+    201: {
+      description: "Product created successfully",
+      content: { "application/json": { schema: SingleProductResponseSchema } }
+    },
     400: { description: "Bad Request", content: { "application/json": { schema: ErrorSchema } } },
   },
 });
@@ -52,7 +54,10 @@ export const updateProductRoute = createRoute({
     body: { content: { "application/json": { schema: UpdateProductBodySchema } } },
   },
   responses: {
-    200: { description: "Product updated successfully", content: { "application/json": { schema: SingleProductResponseSchema } } },
+    200: {
+      description: "Product updated successfully",
+      content: { "application/json": { schema: SingleProductResponseSchema } }
+    },
     404: { description: "Product not found", content: { "application/json": { schema: ErrorSchema } } },
   },
 });
@@ -67,7 +72,10 @@ export const deleteProductRoute = createRoute({
     params: z.object({ id: z.string() }),
   },
   responses: {
-    200: { description: "Product deleted successfully", content: { "application/json": { schema: createSuccessResponseSchema(z.object({ id: z.string() })) } } },
+    200: {
+      description: "Product deleted successfully",
+      content: { "application/json": { schema: createSuccessResponseSchema(z.object({ id: z.string() })) } }
+    },
     404: { description: "Product not found", content: { "application/json": { schema: ErrorSchema } } },
   },
 });

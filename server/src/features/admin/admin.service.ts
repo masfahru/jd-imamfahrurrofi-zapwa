@@ -1,5 +1,5 @@
 import { db } from "@server/core/db/drizzle";
-import { users, accounts, ROLES, licenses } from "@server/core/db/schema";
+import { accounts, ROLES, users } from "@server/core/db/schema";
 import { and, count, eq, ilike, inArray, ne, or } from "drizzle-orm";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";

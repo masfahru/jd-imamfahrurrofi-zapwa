@@ -41,7 +41,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'BearerAuth', {
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
-    return c.json({ message: err.message }, err.status as any);
+    return c.json({ message: err.message }, err.status as never);
   }
   return c.json({ message: 'Internal server error' }, 500);
 });

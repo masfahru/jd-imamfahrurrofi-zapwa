@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 import { createPaginatedResponseSchema, createSuccessResponseSchema } from "@server/core/utils/response";
-import {UserSchema} from "@server/features/admin/admin.schema";
+import { UserSchema } from "@server/features/admin/admin.schema";
 
 // Schema for a single license, optionally including user details
 export const LicenseSchema = z.object({

@@ -72,6 +72,6 @@ export const jsonResponse = (
       message,
       data,
     },
-    statusCode as any,
+    statusCode as never,
   );
 };

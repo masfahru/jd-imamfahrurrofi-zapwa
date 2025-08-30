@@ -1,18 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { type UserEnv, requireAuth, requireLicense } from "@server/core/middleware/auth.middleware";
+import { type UserEnv } from "@server/core/middleware/auth.middleware";
 import { jsonResponse } from "@server/core/utils/response";
-import {
-  createProductRoute,
-  deleteProductRoute,
-  getProductsRoute,
-  updateProductRoute,
-} from "./product.openapi";
-import {
-  createProduct,
-  deleteProduct,
-  getProductsByLicenseId, // Renamed
-  updateProduct,
-} from "./product.service";
+import { createProductRoute, deleteProductRoute, getProductsRoute, updateProductRoute, } from "./product.openapi";
+import { createProduct, deleteProduct, getProductsByLicenseId, updateProduct, } from "./product.service";
 
 const app = new OpenAPIHono<UserEnv>();
 

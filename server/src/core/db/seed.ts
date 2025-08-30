@@ -1,7 +1,7 @@
 import { db } from "./drizzle";
 import { users, accounts } from "./schema";
 import { auth } from "../../features/auth/auth.config";
-import {randomUUIDv7} from "bun";
+import { randomUUIDv7 } from "bun";
 
 async function main() {
   console.log("🌱 Seeding database...");

@@ -108,7 +108,7 @@ export function ReassignLicenseDialog({
                   variant="outline"
                   role="combobox"
                   aria-expanded={popoverOpen}
-                  className="w-full justify-between"
+                  className="w-full justify-between overflow-hidden"
                 >
                   {selectedUser
                     ? `${selectedUser.name} (${selectedUser.email})`

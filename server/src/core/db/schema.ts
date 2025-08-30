@@ -3,11 +3,13 @@ import {
   text,
   timestamp,
   boolean,
-  integer, jsonb,
+  integer,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const ROLES = ["user", "admin", "super admin"] as const;
+export const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as const;
 
 // Core 'user' table required by better-auth
 export const users = pgTable("user", {
@@ -57,41 +59,10 @@ export const sessions = pgTable("session", {
 export const licenses = pgTable("license", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
-  // When a user is deleted, their license becomes unassigned (null)
   userId: text("userId").references(() => users.id, { onDelete: "set null" }).unique(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
-
-export const usersRelations = relations(users, ({ one, many }) => ({
-  // This defines the 'license' property on the user object in queries.
-  license: one(licenses, {
-    fields: [users.id],
-    references: [licenses.userId],
-  }),
-  products: many(products),
-}));
-
-export const accountsRelations = relations(accounts, ({ one }) => ({
-  user: one(users, {
-    fields: [accounts.userId],
-    references: [users.id],
-  }),
-}));
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
-    references: [users.id],
-  }),
-}));
-
-export const licensesRelations = relations(licenses, ({ one }) => ({
-  user: one(users, {
-    fields: [licenses.userId],
-    references: [users.id],
-  }),
-}));
 
 export const products = pgTable("product", {
   id: text("id").primaryKey(),
@@ -112,9 +83,83 @@ export const products = pgTable("product", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
 
-export const productsRelations = relations(products, ({ one }) => ({
-  user: one(users, {
-    fields: [products.userId],
-    references: [users.id],
-  }),
+// Customers Table
+export const customers = pgTable("customer", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
+});
+
+// Orders Table
+export const orders = pgTable("order", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  customerId: text("customerId")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  totalAmount1000: integer("totalAmount1000").notNull(),
+  status: text("status", { enum: ORDER_STATUSES }).default("pending").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
+});
+
+// Order Items Table
+export const orderItems = pgTable("order_item", {
+  id: text("id").primaryKey(),
+  orderId: text("orderId")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  productId: text("productId")
+    .references(() => products.id, { onDelete: "set null" }),
+  productName: text("productName").notNull(),
+  priceAmount1000: integer("priceAmount1000").notNull(),
+  quantity: integer("quantity").notNull(),
+});
+
+// RELATIONS
+export const usersRelations = relations(users, ({ one, many }) => ({
+  license: one(licenses, { fields: [users.id], references: [licenses.userId] }),
+  products: many(products),
+  orders: many(orders),
+  customers: many(customers),
+}));
+
+export const customersRelations = relations(customers, ({ one, many }) => ({
+  user: one(users, { fields: [customers.userId], references: [users.id] }),
+  orders: many(orders),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
+
+export const licensesRelations = relations(licenses, ({ one }) => ({
+  user: one(users, { fields: [licenses.userId], references: [users.id] }),
+}));
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  user: one(users, { fields: [products.userId], references: [users.id] }),
+  orderItems: many(orderItems),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, { fields: [orders.userId], references: [users.id] }),
+  customer: one(customers, { fields: [orders.customerId], references: [customers.id] }), // ADD THIS LINE
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
+  product: one(products, { fields: [orderItems.productId], references: [products.id] }),
 }));

@@ -8,6 +8,7 @@ import authRoutes from "./features/auth/auth.routes";
 import adminRoutes from "./features/admin/admin.routes";
 import userRoutes from "@server/features/user/user.routes";
 import productRoutes from "@server/features/product/product.routes";
+import orderRoutes from "@server/features/order/order.routes";
 
 type AppEnv = {
 	// You can define environment variables here for type safety
@@ -42,6 +43,7 @@ app.route("/auth", authRoutes);
 app.route("/admin", adminRoutes);
 app.route("/user", userRoutes);
 app.route("/user/products", productRoutes)
+app.route("/user/orders", orderRoutes);
 
 app.get("/", (c) => {
 	return c.text("Welcome to the ZapWA API!");

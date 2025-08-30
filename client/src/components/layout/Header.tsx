@@ -11,8 +11,19 @@ export function Header() {
   const { logout, user } = useAuthStore();
 
   const handleLogout = async () => {
+    // Determine the redirect path based on the user's role *before* logging out.
+    const userRole = user?.role;
+
+    // Clear the user's session and state.
     await logout();
-    navigate("/admin/login");
+
+    // Navigate to the correct login page.
+    if (userRole === "admin" || userRole === "super admin") {
+      navigate("/admin/login");
+    } else {
+      // Default to the user login page for the 'user' role or any other case.
+      navigate("/user/login");
+    }
   };
 
   return (

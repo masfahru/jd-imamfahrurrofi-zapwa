@@ -10,6 +10,7 @@ export interface AIAgent {
   id: string;
   name: string;
   behavior: string;
+  isActive?: boolean;
 }
 
 interface AIAgentDialogProps {
@@ -61,10 +62,10 @@ export function AIAgentDialog({ open, onOpenChange, agent, onSave, isSaving }: A
               <Label htmlFor="behavior">Behavior / Personality</Label>
               <Textarea
                 id="behavior"
-                rows={8}
+                rows={6}
                 placeholder="Describe how your AI should behave. e.g., 'You are a formal and professional assistant. Always address customers as Sir or Ma'am.'"
                 {...form.getInputProps("behavior")}
-                className="resize-y"
+                className="h-32 resize-none"
               />
               {form.errors.behavior && <p className="text-sm text-red-500">{form.errors.behavior}</p>}
             </div>

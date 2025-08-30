@@ -162,27 +162,44 @@ export const setActiveAgent = async (licenseId: string, agentId: string) => {
 };
 
 /**
- * Fetches all AI Agents for a specific license.
+ * Fetches all AI Agents for a specific license with pagination.
  */
-export const getAgentsByLicenseId = async (licenseId: string) => {
-  const agents = await db.query.aiAgents.findMany({
-    where: eq(aiAgents.licenseId, licenseId),
-    orderBy: [desc(aiAgents.createdAt)],
-  });
+export const getAgentsByLicenseId = async (
+  licenseId: string,
+  page: number,
+  limit: number
+) => {
+  const offset = (page - 1) * limit;
 
-  // For now, we'll return a simple array. We can paginate later if needed.
-  const totalItems = agents.length;
+  // Clause for filtering by license
+  const whereClause = eq(aiAgents.licenseId, licenseId);
+
+  // Get total count for pagination metadata
+  const totalItemsResult = await db
+    .select({ value: count() })
+    .from(aiAgents)
+    .where(whereClause);
+  const totalItems = totalItemsResult[0]?.value ?? 0;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  // Get the agents for the current page
+  const agents = await db.query.aiAgents.findMany({
+    where: whereClause,
+    orderBy: [desc(aiAgents.createdAt)],
+    offset,
+    limit,
+  });
 
   return {
     items: agents,
     pagination: {
       totalItems,
-      totalPages: 1,
-      currentPage: 1,
-      pageSize: totalItems,
-      hasNextPage: false,
-      hasPrevPage: false,
-    }
+      totalPages,
+      currentPage: page,
+      pageSize: limit,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
   };
 };
 

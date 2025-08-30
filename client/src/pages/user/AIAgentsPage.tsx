@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { CheckCircle2, Edit, PlusCircle, Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -17,11 +18,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AIAgentDialog, type AIAgent } from "@/components/dialogs/ai-agent-dialog";
 import { Badge } from "@/components/ui/badge";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
+// Interface to match the paginated response from the backend
 interface PaginatedResponse<T> {
-  data: { items: T[] };
+  data: {
+    items: T[];
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+    };
+  };
 }
 
 export function AIAgentsPage() {
@@ -29,15 +39,22 @@ export function AIAgentsPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null);
 
-  const { data: agentsData, isLoading } = useQuery<PaginatedResponse<AIAgent>, Error>({
-    queryKey: ["aiAgents"],
+  // NEW: State for pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const { data: agentsResponse, isLoading } = useQuery<PaginatedResponse<AIAgent>, Error>({
+    queryKey: ["aiAgents", page, limit],
     queryFn: async () => {
-      const res = await fetch(`${SERVER_URL}/api/user/ai/agents`, { credentials: "include" });
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const res = await fetch(`${SERVER_URL}/api/user/ai/agents?${params.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch AI agents.");
       return res.json();
     },
   });
-  const agents = agentsData?.data?.items ?? [];
+
+  const agents = agentsResponse?.data?.items ?? [];
+  const pagination = agentsResponse?.data?.pagination;
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["aiAgents"] });
@@ -117,14 +134,15 @@ export function AIAgentsPage() {
       accessorKey: "isActive",
       header: "Status",
       cell: ({ row }) => {
-        return row.original.isActive ? (
-          <Badge variant="default">
-            <CheckCircle2 className="mr-1 h-3 w-3"/>
-            Active
-          </Badge>
-        ) : (
-          <Badge variant="secondary">Inactive</Badge>
-        );
+        return row.original.isActive
+          ? (
+            <Badge variant="default">
+              <CheckCircle2 className="mr-1 h-3 w-3" />
+              Active
+            </Badge>
+          ) : (
+            <Badge variant="secondary">Inactive</Badge>
+          );
       },
     },
     {
@@ -140,7 +158,7 @@ export function AIAgentsPage() {
                 onClick={() => setActiveAgent(agent.id)}
                 disabled={isActivating}
               >
-                Set Active
+                {isActivating ? "Activating..." : "Set Active"}
               </Button>
             )}
             <Button variant="outline" size="icon" onClick={() => { setSelectedAgent(agent); setDialogOpen(true); }}>
@@ -183,7 +201,22 @@ export function AIAgentsPage() {
       {isLoading ? (
         <div>Loading agents...</div>
       ) : (
-        <DataTable columns={columns} data={agents} />
+        <>
+          <DataTable columns={columns} data={agents} />
+          {pagination && (
+            <DataTablePagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalCount={pagination.totalItems}
+              itemPerPage={limit}
+              onPageChange={setPage}
+              onPerPageChange={(newL) => {
+                setLimit(newL);
+                setPage(1);
+              }}
+            />
+          )}
+        </>
       )}
       <AIAgentDialog
         open={isDialogOpen}

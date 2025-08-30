@@ -43,7 +43,8 @@ app.openapi(createAgentRoute, async (c) => {
 
 app.openapi(getAgentsRoute, async (c) => {
   const license = c.get("license");
-  const result = await getAgentsByLicenseId(license.id);
+  const { page = '1', limit = '10' } = c.req.query();
+  const result = await getAgentsByLicenseId(license.id, parseInt(page), parseInt(limit));
   return jsonResponse(c, "AI Agents retrieved successfully", result);
 });
 

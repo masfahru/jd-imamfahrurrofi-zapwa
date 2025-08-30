@@ -13,11 +13,9 @@ import orderRoutes from "@server/features/order/order.routes";
 type AppEnv = {
 	// You can define environment variables here for type safety
 };
-
 export const app = new OpenAPIHono<{ Bindings: AppEnv }>().basePath("/api");
 
 app.use(logger());
-
 app.onError((err, c) => {
 	if (err instanceof HTTPException) {
 		return c.json({ message: err.message }, err.status as any);
@@ -25,7 +23,6 @@ app.onError((err, c) => {
 	console.error("Unhandled Application Error:", err);
 	return c.json({ message: "Internal Server Error" }, 500);
 });
-
 app.use(
 	"*",
 	cors({
@@ -56,7 +53,6 @@ app.doc("/doc", {
 		title: "ZapWA API",
 	},
 });
-
 app.get('/reference', Scalar({ url: '/api/doc' }))
 
 export default app;

@@ -1,6 +1,6 @@
 import { db } from "@server/core/db/drizzle";
 import { products } from "@server/core/db/schema";
-import { and, count, eq, ilike, or } from "drizzle-orm";
+import { and, count, eq, ilike, or, desc } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
@@ -10,12 +10,12 @@ import type { z } from "zod";
 type ProductData = z.infer<typeof CreateProductBodySchema>;
 
 /**
- * Creates a new product for a specific user.
- * @param userId - The ID of the user creating the product.
+ * Creates a new product for a specific license.
+ * @param licenseId - The ID of the license creating the product.
  * @param data - The product data.
  * @returns The newly created product object.
  */
-export const createProduct = async (userId: string, data: ProductData) => {
+export const createProduct = async (licenseId: string, data: ProductData) => {
   const authContext = await auth.$context;
   const generateId = authContext.generateId;
 
@@ -24,8 +24,6 @@ export const createProduct = async (userId: string, data: ProductData) => {
   }
 
   const newProductId = generateId({ model: "product" }) || randomUUIDv7();
-
-  // Clean the data before inserting to ensure imageCdnUrls is string[]
   const cleanedData = {
     ...data,
     imageCdnUrls: data.imageCdnUrls?.filter((url): url is string => !!url),
@@ -35,7 +33,7 @@ export const createProduct = async (userId: string, data: ProductData) => {
     .insert(products)
     .values({
       id: newProductId,
-      userId: userId,
+      licenseId: licenseId, // Use licenseId
       ...cleanedData,
     })
     .returning();
@@ -48,22 +46,22 @@ export const createProduct = async (userId: string, data: ProductData) => {
 };
 
 /**
- * Fetches a paginated list of products for a specific user.
- * @param userId - The ID of the user whose products to fetch.
+ * Fetches a paginated list of products for a specific license.
+ * @param licenseId - The ID of the license whose products to fetch.
  * @param page - The page number.
  * @param limit - The number of items per page.
  * @param search - Optional search term for product name or retailerId.
  * @returns A paginated list of products.
  */
-export const getProductsByUserId = async (
-  userId: string,
+export const getProductsByLicenseId = async (
+  licenseId: string,
   page: number,
   limit: number,
   search?: string,
 ) => {
   const offset = (page - 1) * limit;
   const whereClause = and(
-    eq(products.userId, userId),
+    eq(products.licenseId, licenseId), // Use licenseId
     search
       ? or(
         ilike(products.name, `%${search}%`),
@@ -97,18 +95,17 @@ export const getProductsByUserId = async (
 };
 
 /**
- * Updates a product, ensuring the user owns it.
- * @param userId - The ID of the user performing the update.
+ * Updates a product, ensuring the license owns it.
+ * @param licenseId - The ID of the license performing the update.
  * @param productId - The ID of the product to update.
  * @param data - The new data for the product.
  * @returns The updated product object.
  */
 export const updateProduct = async (
-  userId: string,
+  licenseId: string,
   productId: string,
   data: Partial<ProductData>,
 ) => {
-  // Clean the data before updating to ensure imageCdnUrls is string[]
   const cleanedData = {
     ...data,
     imageCdnUrls: data.imageCdnUrls?.filter((url): url is string => !!url),
@@ -117,7 +114,7 @@ export const updateProduct = async (
   const [updatedProduct] = await db
     .update(products)
     .set({ ...cleanedData, updatedAt: new Date() })
-    .where(and(eq(products.id, productId), eq(products.userId, userId)))
+    .where(and(eq(products.id, productId), eq(products.licenseId, licenseId))) // Use licenseId
     .returning();
 
   if (!updatedProduct) {
@@ -127,15 +124,15 @@ export const updateProduct = async (
 };
 
 /**
- * Deletes a product, ensuring the user owns it.
- * @param userId - The ID of the user performing the deletion.
+ * Deletes a product, ensuring the license owns it.
+ * @param licenseId - The ID of the license performing the deletion.
  * @param productId - The ID of the product to delete.
  * @returns An object with the ID of the deleted product.
  */
-export const deleteProduct = async (userId: string, productId: string) => {
+export const deleteProduct = async (licenseId: string, productId: string) => {
   const [deletedProduct] = await db
     .delete(products)
-    .where(and(eq(products.id, productId), eq(products.userId, userId)))
+    .where(and(eq(products.id, productId), eq(products.licenseId, licenseId))) // Use licenseId
     .returning({ id: products.id });
 
   if (!deletedProduct) {

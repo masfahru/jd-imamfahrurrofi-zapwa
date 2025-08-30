@@ -1,5 +1,5 @@
 import { db } from "@server/core/db/drizzle";
-import { licenses, users } from "@server/core/db/schema";
+import {customers, licenses, orders, products, users} from "@server/core/db/schema";
 import { and, count, eq, isNull, ne } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "@server/features/auth/auth.config";
@@ -159,4 +159,42 @@ export const getLicenses = async (page: number, limit: number) => {
       hasPrevPage: page > 1,
     },
   };
+};
+
+/**
+ * Migrates all data (products, customers, orders) from a source license to a target license.
+ * This is an admin-only destructive action.
+ * @param sourceLicenseId The ID of the old license with data.
+ * @param targetLicenseId The ID of the new license to move data to.
+ * @returns An object indicating success.
+ * @throws HTTPException for various validation errors.
+ */
+export const migrateLicenseData = async (sourceLicenseId: string, targetLicenseId: string) => {
+  if (sourceLicenseId === targetLicenseId) {
+    throw new HTTPException(400, { message: "Source and target licenses cannot be the same." });
+  }
+
+  const sourceLicense = await db.query.licenses.findFirst({ where: eq(licenses.id, sourceLicenseId) });
+  const targetLicense = await db.query.licenses.findFirst({ where: eq(licenses.id, targetLicenseId) });
+
+  if (!sourceLicense || !targetLicense) {
+    throw new HTTPException(404, { message: "One or both licenses could not be found." });
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.update(products).set({ licenseId: targetLicenseId }).where(eq(products.licenseId, sourceLicenseId));
+
+      await tx.update(customers).set({ licenseId: targetLicenseId }).where(eq(customers.licenseId, sourceLicenseId));
+
+      await tx.update(orders).set({ licenseId: targetLicenseId }).where(eq(orders.licenseId, sourceLicenseId));
+    });
+  } catch (error) {
+    console.error("Failed to migrate license data:", error);
+    throw new HTTPException(500, { message: "An error occurred during data migration." });
+  }
+
+  await db.delete(licenses).where(eq(licenses.id, sourceLicenseId));
+
+  return { success: true, message: `Data from license ${sourceLicenseId} successfully migrated to ${targetLicenseId}. Old license has been deleted.` };
 };

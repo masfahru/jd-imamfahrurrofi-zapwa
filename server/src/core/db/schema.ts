@@ -66,9 +66,9 @@ export const licenses = pgTable("license", {
 
 export const products = pgTable("product", {
   id: text("id").primaryKey(),
-  userId: text("userId")
+  licenseId: text("licenseId") // Changed from userId
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => licenses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   isHidden: boolean("isHidden").default(false).notNull(),
   url: text("url"),
@@ -86,9 +86,9 @@ export const products = pgTable("product", {
 // Customers Table
 export const customers = pgTable("customer", {
   id: text("id").primaryKey(),
-  userId: text("userId")
+  licenseId: text("licenseId") // Changed from userId
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => licenses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
@@ -98,9 +98,9 @@ export const customers = pgTable("customer", {
 // Orders Table
 export const orders = pgTable("order", {
   id: text("id").primaryKey(),
-  userId: text("userId")
+  licenseId: text("licenseId") // Changed from userId
     .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    .references(() => licenses.id, { onDelete: "cascade" }),
   customerId: text("customerId")
     .notNull()
     .references(() => customers.id, { onDelete: "cascade" }),
@@ -124,15 +124,12 @@ export const orderItems = pgTable("order_item", {
 });
 
 // RELATIONS
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const usersRelations = relations(users, ({ one }) => ({ // Removed many relations
   license: one(licenses, { fields: [users.id], references: [licenses.userId] }),
-  products: many(products),
-  orders: many(orders),
-  customers: many(customers),
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
-  user: one(users, { fields: [customers.userId], references: [users.id] }),
+  license: one(licenses, { fields: [customers.licenseId], references: [licenses.id] }), // Changed from user
   orders: many(orders),
 }));
 
@@ -144,18 +141,21 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
-export const licensesRelations = relations(licenses, ({ one }) => ({
+export const licensesRelations = relations(licenses, ({ one, many }) => ({ // Added many relations
   user: one(users, { fields: [licenses.userId], references: [users.id] }),
+  products: many(products),
+  orders: many(orders),
+  customers: many(customers),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
-  user: one(users, { fields: [products.userId], references: [users.id] }),
+  license: one(licenses, { fields: [products.licenseId], references: [licenses.id] }), // Changed from user
   orderItems: many(orderItems),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
-  user: one(users, { fields: [orders.userId], references: [users.id] }),
-  customer: one(customers, { fields: [orders.customerId], references: [customers.id] }), // ADD THIS LINE
+  license: one(licenses, { fields: [orders.licenseId], references: [licenses.id] }), // Changed from user
+  customer: one(customers, { fields: [orders.customerId], references: [customers.id] }),
   items: many(orderItems),
 }));
 

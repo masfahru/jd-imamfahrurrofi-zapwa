@@ -10,11 +10,7 @@ import type { CreateOrderBodySchema, UpdateOrderBodySchema } from "./order.schem
 type CreateOrderData = z.infer<typeof CreateOrderBodySchema>;
 type UpdateOrderData = z.infer<typeof UpdateOrderBodySchema>;
 
-/**
- * Creates a new order for a user.
- * It fetches product prices from the DB to ensure accuracy and prevent tampering.
- */
-export const createOrder = async (userId: string, data: CreateOrderData) => {
+export const createOrder = async (licenseId: string, data: CreateOrderData) => {
   if (data.items.length === 0) {
     throw new HTTPException(400, { message: "Order must contain at least one item." });
   }
@@ -23,16 +19,16 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
   const dbProducts = await db.query.products.findMany({
     where: and(
       inArray(products.id, productIds),
-      eq(products.userId, userId) // Ensure user owns the products
+      eq(products.licenseId, licenseId) // Ensure license owns the products
     ),
   });
+
   if (dbProducts.length !== productIds.length) {
     throw new HTTPException(400, { message: "One or more products are invalid or do not belong to you." });
   }
 
-  // Find or create the customer based on phone number
   let customer = await db.query.customers.findFirst({
-    where: and(eq(customers.phone, data.customer.phone), eq(customers.userId, userId)),
+    where: and(eq(customers.phone, data.customer.phone), eq(customers.licenseId, licenseId)),
   });
 
   const authContext = await auth.$context;
@@ -45,12 +41,11 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     const newCustomerId = generateId({ model: "customer" }) || randomUUIDv7();
     [customer] = await db.insert(customers).values({
       id: newCustomerId,
-      userId: userId,
+      licenseId: licenseId,
       name: data.customer.name,
       phone: data.customer.phone,
     }).returning();
   } else {
-    // If customer exists, update their name just in case it has changed
     [customer] = await db.update(customers).set({
       name: data.customer.name,
       updatedAt: new Date()
@@ -72,8 +67,8 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
     totalAmount1000 += product.priceAmount1000 * item.quantity;
     return {
       productId: product.id,
-      productName: product.name, // Denormalize name for historical record
-      priceAmount1000: product.priceAmount1000, // Denormalize price
+      productName: product.name,
+      priceAmount1000: product.priceAmount1000,
       quantity: item.quantity,
     };
   });
@@ -84,7 +79,7 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
       .insert(orders)
       .values({
         id: newOrderId,
-        userId: userId,
+        licenseId: licenseId, // Use licenseId
         customerId: customer!.id,
         totalAmount1000,
         status: 'pending',
@@ -101,76 +96,61 @@ export const createOrder = async (userId: string, data: CreateOrderData) => {
 
     return insertedOrder;
   });
+
   if (!newOrder) {
     throw new HTTPException(500, { message: "Failed to create order." });
   }
 
-  return getOrderById(userId, newOrder.id);
+  return getOrderById(licenseId, newOrder.id);
 };
 
-/**
- * Updates the status of an order.
- */
-export const updateOrderStatus = async (userId: string, orderId: string, data: UpdateOrderData) => {
+export const updateOrderStatus = async (licenseId: string, orderId: string, data: UpdateOrderData) => {
   const [updatedOrder] = await db
     .update(orders)
     .set({ status: data.status, updatedAt: new Date() })
-    .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+    .where(and(eq(orders.id, orderId), eq(orders.licenseId, licenseId)))
     .returning();
+
   if (!updatedOrder) {
     throw new HTTPException(404, { message: "Order not found or you don't have permission to edit it." });
   }
 
-  return getOrderById(userId, updatedOrder.id);
+  return getOrderById(licenseId, updatedOrder.id);
 };
 
-/**
- * Deletes an order, ensuring it belongs to the user.
- */
-export const deleteOrder = async (userId: string, orderId: string) => {
+export const deleteOrder = async (licenseId: string, orderId: string) => {
   const [deletedOrder] = await db
     .delete(orders)
-    .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+    .where(and(eq(orders.id, orderId), eq(orders.licenseId, licenseId)))
     .returning({ id: orders.id });
+
   if (!deletedOrder) {
     throw new HTTPException(404, { message: "Order not found or you don't have permission to delete it." });
   }
   return deletedOrder;
 };
 
-
-/**
- * Fetches a paginated list of orders for a specific user.
- * @param userId - The ID of the user whose orders to fetch.
- * @param page - The page number.
- * @param limit - The number of items per page.
- * @param search - Optional search term for order ID.
- * @returns A paginated list of orders.
- */
-export const getOrdersByUserId = async (
-  userId: string,
+export const getOrdersByLicenseId = async (
+  licenseId: string,
   page: number,
   limit: number,
   search?: string,
 ) => {
   const offset = (page - 1) * limit;
   const whereClause = and(
-    eq(orders.userId, userId),
+    eq(orders.licenseId, licenseId),
     search ? ilike(orders.id, `%${search}%`) : undefined,
-    );
+  );
+
   const totalItemsResult = await db.select({ value: count() }).from(orders).where(whereClause);
   const totalItems = totalItemsResult[0]?.value || 0;
   const totalPages = Math.ceil(totalItems / limit);
+
   const userOrders = await db.query.orders.findMany({
     where: whereClause,
     with: {
       items: {
-        columns: {
-          id: true,
-          productName: true,
-          priceAmount1000: true,
-          quantity: true,
-        },
+        columns: { id: true, productName: true, priceAmount1000: true, quantity: true },
       },
       customer: true,
     },
@@ -192,20 +172,15 @@ export const getOrdersByUserId = async (
   };
 };
 
-/**
- * Fetches a single order by its ID, ensuring it belongs to the specified user.
- * @param userId - The ID of the user requesting the order.
- * @param orderId - The ID of the order to fetch.
- * @returns The order object with its items.
- */
-export const getOrderById = async (userId: string, orderId: string) => {
+export const getOrderById = async (licenseId: string, orderId: string) => {
   const order = await db.query.orders.findFirst({
-    where: and(eq(orders.id, orderId), eq(orders.userId, userId)),
+    where: and(eq(orders.id, orderId), eq(orders.licenseId, licenseId)),
     with: {
       items: true,
       customer: true,
     },
   });
+
   if (!order) {
     throw new HTTPException(404, { message: "Order not found or you don't have permission to view it." });
   }

@@ -6,7 +6,8 @@ import {
   GetLicensesQuerySchema,
   PaginatedLicensesResponseSchema,
   ReassignLicenseBodySchema,
-  SingleLicenseResponseSchema
+  SingleLicenseResponseSchema,
+  MigrateLicenseDataBodySchema,
 } from "./license.schema";
 
 const adminRoles = ["admin", "super admin"] as const;
@@ -69,5 +70,21 @@ export const getLicensesRoute = createRoute({
   },
   responses: {
     200: { description: 'List of licenses', content: { 'application/json': { schema: PaginatedLicensesResponseSchema } } },
+  },
+});
+
+export const migrateLicenseDataRoute = createRoute({
+  method: 'post',
+  path: '/licenses/migrate-data',
+  middleware: [requireAuth, requireRole(["super admin"])],
+  summary: 'Migrate all data from a source license to a target license',
+  tags: ['Licenses'],
+  request: {
+    body: { content: { 'application/json': { schema: MigrateLicenseDataBodySchema } } },
+  },
+  responses: {
+    200: { description: 'Data migrated successfully', content: { 'application/json': { schema: ErrorSchema } } }, // Using ErrorSchema for simple {message} response
+    400: { description: 'Bad Request', content: { 'application/json': { schema: ErrorSchema } } },
+    404: { description: 'License not Found', content: { 'application/json': { schema: ErrorSchema } } },
   },
 });

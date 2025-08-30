@@ -32,6 +32,11 @@ export const GetLicensesQuerySchema = z.object({
   limit: z.string().optional().default('10'),
 });
 
+export const MigrateLicenseDataBodySchema = z.object({
+  sourceLicenseId: z.string(),
+  targetLicenseId: z.string(),
+});
+
 // Response Schemas
 export const PaginatedLicensesResponseSchema = createPaginatedResponseSchema(LicenseSchema);
 export const SingleLicenseResponseSchema = createSuccessResponseSchema(LicenseSchema);

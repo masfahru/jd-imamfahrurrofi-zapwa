@@ -36,6 +36,13 @@
       "when": 1756525723176,
       "tag": "0004_tranquil_nebula",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1756527719063,
+      "tag": "0005_bouncy_sugar_man",
+      "breakpoints": true
     }
   ]
 }

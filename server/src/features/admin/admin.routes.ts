@@ -22,12 +22,12 @@ import {
 import { jsonResponse } from '@server/core/utils/response';
 import {
   createAndAssignLicense,
-  getLicenses, reassignLicense,
+  getLicenses, migrateLicenseData, reassignLicense,
   removeLicenseFromUser
 } from "@server/features/admin/license/license.service";
 import {
   assignLicenseRoute,
-  getLicensesRoute,
+  getLicensesRoute, migrateLicenseDataRoute,
   reassignLicenseRoute,
   removeLicenseRoute
 } from "@server/features/admin/license/license.openapi";
@@ -146,6 +146,12 @@ app.openapi(reassignLicenseRoute, async (c) => {
   const updatedLicense = await reassignLicense(licenseId, newUserId);
 
   return jsonResponse(c, 'License reassigned successfully', updatedLicense, 200);
+});
+
+app.openapi(migrateLicenseDataRoute, async (c) => {
+  const { sourceLicenseId, targetLicenseId } = c.req.valid('json');
+  const result = await migrateLicenseData(sourceLicenseId, targetLicenseId);
+  return jsonResponse(c, result.message, null, 200);
 });
 
 export default app;

@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import { requireAuth, requireRole } from "@server/core/middleware/auth.middleware";
+import {requireAuth, requireLicense, requireRole} from "@server/core/middleware/auth.middleware";
 import { createSuccessResponseSchema, ErrorSchema } from "@server/core/utils/response";
 import {
   CreateOrderBodySchema,
@@ -8,7 +8,7 @@ import {
   SingleOrderResponseSchema, UpdateOrderBodySchema
 } from "./order.schema";
 
-const userOnly = [requireAuth, requireRole(["user"])];
+const userOnly = [requireAuth, requireLicense];
 
 export const createOrderRoute = createRoute({
   method: "post",

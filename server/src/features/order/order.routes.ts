@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import type { User } from "@server/core/middleware/auth.middleware";
+import { type UserEnv, requireAuth, requireLicense } from "@server/core/middleware/auth.middleware";
 import { jsonResponse } from "@server/core/utils/response";
 import {
   createOrderRoute,
@@ -12,26 +12,25 @@ import {
   createOrder,
   deleteOrder,
   getOrderById,
-  getOrdersByUserId,
+  getOrdersByLicenseId, // Renamed
   updateOrderStatus
 } from "./order.service";
 
-type UserEnv = { Variables: { user: User } };
 const app = new OpenAPIHono<UserEnv>();
 
 app.openapi(createOrderRoute, async (c) => {
-  const currentUser = c.get("user");
+  const license = c.get("license");
   const orderData = c.req.valid("json");
-  const newOrder = await createOrder(currentUser.id, orderData);
+  const newOrder = await createOrder(license.id, orderData);
   return jsonResponse(c, "Order created successfully", newOrder, 201);
 });
 
 app.openapi(getOrdersRoute, async (c) => {
-  const currentUser = c.get("user");
+  const license = c.get("license");
   const { page, limit, search } = c.req.valid("query");
 
-  const result = await getOrdersByUserId(
-    currentUser.id,
+  const result = await getOrdersByLicenseId( // Renamed
+    license.id,
     parseInt(page),
     parseInt(limit),
     search,
@@ -40,25 +39,25 @@ app.openapi(getOrdersRoute, async (c) => {
 });
 
 app.openapi(getOrderByIdRoute, async (c) => {
-  const currentUser = c.get("user");
+  const license = c.get("license");
   const { id } = c.req.valid("param");
 
-  const order = await getOrderById(currentUser.id, id);
+  const order = await getOrderById(license.id, id);
   return jsonResponse(c, "Order details retrieved successfully", order);
 });
 
 app.openapi(updateOrderRoute, async (c) => {
-  const currentUser = c.get("user");
+  const license = c.get("license");
   const { id } = c.req.valid("param");
   const data = c.req.valid("json");
-  const updatedOrder = await updateOrderStatus(currentUser.id, id, data);
+  const updatedOrder = await updateOrderStatus(license.id, id, data);
   return jsonResponse(c, "Order updated successfully", updatedOrder);
 });
 
 app.openapi(deleteOrderRoute, async (c) => {
-  const currentUser = c.get("user");
+  const license = c.get("license");
   const { id } = c.req.valid("param");
-  const result = await deleteOrder(currentUser.id, id);
+  const result = await deleteOrder(license.id, id);
   return jsonResponse(c, "Order deleted successfully", result);
 });
 

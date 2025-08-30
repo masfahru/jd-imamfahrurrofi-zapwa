@@ -1,6 +1,9 @@
-// server/src/core/middleware/auth.middleware.ts
 import { createMiddleware } from "hono/factory";
 import { auth } from "../../features/auth/auth.config";
+import { db } from "@server/core/db/drizzle";
+import { licenses } from "@server/core/db/schema";
+import { eq } from "drizzle-orm";
+import { HTTPException } from "hono/http-exception";
 
 export type Session = typeof auth.$Infer.Session;
 export type User = Session["user"];
@@ -11,6 +14,19 @@ export type AdminEnv = {
   Variables: {
     session: Session;
     user: User;
+  };
+};
+
+// Define License type
+type License = typeof licenses.$inferSelect;
+
+// Define the User Environment with License
+export type UserEnv = {
+  Bindings: {};
+  Variables: {
+    session: Session;
+    user: User;
+    license: License;
   };
 };
 
@@ -26,6 +42,26 @@ export const requireAuth = createMiddleware<AdminEnv>(async (c, next) => {
 
   c.set("session", session as Session);
   c.set("user", session.user as User);
+  await next();
+});
+
+// This middleware requires a user to have a license
+export const requireLicense = createMiddleware<UserEnv>(async (c, next) => {
+  const user = c.get("user");
+
+  if (!user) {
+    throw new HTTPException(401, { message: "Unauthorized" });
+  }
+
+  const userLicense = await db.query.licenses.findFirst({
+    where: eq(licenses.userId, user.id),
+  });
+
+  if (!userLicense) {
+    throw new HTTPException(403, { message: "Forbidden: A valid license is required." });
+  }
+
+  c.set("license", userLicense);
   await next();
 });
 

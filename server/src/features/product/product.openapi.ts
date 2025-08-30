@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import { requireAuth, requireRole } from "@server/core/middleware/auth.middleware";
+import {requireAuth, requireLicense, requireRole} from "@server/core/middleware/auth.middleware";
 import {createSuccessResponseSchema, ErrorSchema} from "@server/core/utils/response";
 import {
   CreateProductBodySchema,
@@ -10,7 +10,7 @@ import {
   UpdateProductBodySchema,
 } from "./product.schema";
 
-const userOnly = [requireAuth, requireRole(["user"])];
+const userOnly = [requireAuth, requireLicense];
 
 export const createProductRoute = createRoute({
   method: "post",

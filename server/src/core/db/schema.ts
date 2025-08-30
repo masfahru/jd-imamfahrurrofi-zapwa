@@ -83,6 +83,8 @@ export const products = pgTable("product", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
 
+export type Product = typeof products.$inferSelect;
+
 // Customers Table
 export const customers = pgTable("customer", {
   id: text("id").primaryKey(),
@@ -123,8 +125,43 @@ export const orderItems = pgTable("order_item", {
   quantity: integer("quantity").notNull(),
 });
 
+export const chatSessions = pgTable("chat_sessions", {
+  id: text("id").primaryKey(),
+  licenseId: text("licenseId")
+    .notNull()
+    .references(() => licenses.id, { onDelete: "cascade" }),
+  customerIdentifier: text("customerIdentifier").notNull(), // e.g., customer phone number
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
+});
+
+// New Chat Messages Table
+export const chatMessages = pgTable("chat_messages", {
+  id: text("id").primaryKey(),
+  sessionId: text("sessionId")
+    .notNull()
+    .references(() => chatSessions.id, { onDelete: "cascade" }),
+  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  content: text("content").notNull(),
+  toolCalls: jsonb("toolCalls"), // Optional, for when the assistant decides to call a tool
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+});
+
+export const aiAgents = pgTable("ai_agents", {
+  id: text("id").primaryKey(),
+  licenseId: text("licenseId")
+    .notNull()
+    .references(() => licenses.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  behavior: text("behavior").notNull(),
+  isActive: boolean("isActive").default(false).notNull(), // Add this line
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
+});
+
 // RELATIONS
-export const usersRelations = relations(users, ({ one }) => ({ // Removed many relations
+export const usersRelations = relations(users, ({ one }) => ({
   license: one(licenses, { fields: [users.id], references: [licenses.userId] }),
 }));
 
@@ -146,6 +183,8 @@ export const licensesRelations = relations(licenses, ({ one, many }) => ({ // Ad
   products: many(products),
   orders: many(orders),
   customers: many(customers),
+  chatSessions: many(chatSessions),
+  aiAgents: many(aiAgents),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -162,4 +201,17 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
   product: one(products, { fields: [orderItems.productId], references: [products.id] }),
+}));
+
+export const chatSessionsRelations = relations(chatSessions, ({ one, many }) => ({
+  license: one(licenses, { fields: [chatSessions.licenseId], references: [licenses.id] }),
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  session: one(chatSessions, { fields: [chatMessages.sessionId], references: [chatSessions.id] }),
+}));
+
+export const aiAgentsRelations = relations(aiAgents, ({ one }) => ({
+  license: one(licenses, { fields: [aiAgents.licenseId], references: [licenses.id] }),
 }));

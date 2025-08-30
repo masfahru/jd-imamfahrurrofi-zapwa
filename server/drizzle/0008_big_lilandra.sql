@@ -1,0 +1,1 @@
+ALTER TABLE "ai_agents" ADD COLUMN "isActive" boolean DEFAULT false NOT NULL;

@@ -136,7 +136,6 @@ export const chatSessions = pgTable("chat_sessions", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
 
-// New Chat Messages Table
 export const chatMessages = pgTable("chat_messages", {
   id: text("id").primaryKey(),
   sessionId: text("sessionId")
@@ -146,6 +145,11 @@ export const chatMessages = pgTable("chat_messages", {
   content: text("content").notNull(),
   toolCalls: jsonb("toolCalls"),
   toolCallId: text("tool_call_id"),
+  tokenUsage: jsonb("tokenUsage").$type<{
+    totalTokens?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+  }>(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
 });
 

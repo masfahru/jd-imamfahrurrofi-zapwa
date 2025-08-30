@@ -15,6 +15,7 @@ import type { ToolCall } from "@langchain/core/messages/tool";
 /**
  * Main handler for processing an incoming chat message from a customer.
  * It orchestrates fetching context, managing sessions, invoking the LLM, and handling tool calls.
+ * Now includes token usage tracking.
  *
  * @param licenseId - The license ID of the ZapWA user.
  * @param sessionId - The current session ID (or null to start a new one).
@@ -44,9 +45,28 @@ export async function handleChatMessage(
   const agentBehavior = activeAgent ? activeAgent.behavior : "";
   const systemPrompt = getSystemPrompt(formattedProducts, agentBehavior);
 
+  let tokenUsage: {
+    totalTokens?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+  } | null = null;
+
   const llm = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    callbacks: [
+      {
+        handleLLMEnd(output) {
+          if (output.llmOutput?.tokenUsage) {
+            tokenUsage = {
+              totalTokens: output.llmOutput.tokenUsage.totalTokens,
+              promptTokens: output.llmOutput.tokenUsage.promptTokens,
+              completionTokens: output.llmOutput.tokenUsage.completionTokens,
+            };
+          }
+        },
+      },
+    ],
   });
 
   const createOrderTool = getCreateOrderTool(licenseId, productData.items);
@@ -78,6 +98,7 @@ export async function handleChatMessage(
     content: userMessage,
   });
 
+  tokenUsage = null;
   const aiResponse = await llmWithTools.invoke(history);
 
   let assistantReply: string;
@@ -90,6 +111,7 @@ export async function handleChatMessage(
       role: 'assistant',
       content: typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content),
       toolCalls: aiResponse.tool_calls,
+      tokenUsage,
     });
     history.push(aiResponse);
 
@@ -110,6 +132,7 @@ export async function handleChatMessage(
       history.push(new ToolMessage({ content: toolResult, tool_call_id: toolCall.id! }));
     }
 
+    tokenUsage = null;
     const finalResponse = await llm.invoke(history);
     assistantReply = finalResponse.content.toString();
 
@@ -127,6 +150,7 @@ export async function handleChatMessage(
     sessionId: newSessionIdForResponse, // Use the potentially new session ID
     role: 'assistant',
     content: assistantReply,
+    tokenUsage,
   });
 
   return {

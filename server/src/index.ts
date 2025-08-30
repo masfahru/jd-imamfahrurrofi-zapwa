@@ -10,6 +10,7 @@ import userRoutes from "@server/features/user/user.routes";
 import productRoutes from "@server/features/product/product.routes";
 import orderRoutes from "@server/features/order/order.routes";
 import aiRoutes from "@server/features/ai/ai.routes";
+import chatLogRoutes from "@server/features/chat-log/chat-log.routes";
 
 type AppEnv = object;
 export const app = new OpenAPIHono<{ Bindings: AppEnv }>().basePath("/api");
@@ -38,9 +39,10 @@ app.use(
 app.route("/auth", authRoutes);
 app.route("/admin", adminRoutes);
 app.route("/user", userRoutes);
-app.route("/user/products", productRoutes)
+app.route("/user/products", productRoutes);
 app.route("/user/orders", orderRoutes);
 app.route("/user/ai", aiRoutes);
+app.route("/user", chatLogRoutes);
 
 app.get("/", (c) => {
 	return c.text("Welcome to the ZapWA API!");

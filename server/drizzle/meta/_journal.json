@@ -15,6 +15,13 @@
       "when": 1756485638627,
       "tag": "0001_organic_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1756521159659,
+      "tag": "0002_eminent_glorian",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer, jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -62,12 +63,13 @@ export const licenses = pgTable("license", {
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
 
-export const usersRelations = relations(users, ({ one }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   // This defines the 'license' property on the user object in queries.
   license: one(licenses, {
     fields: [users.id],
     references: [licenses.userId],
   }),
+  products: many(products),
 }));
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
@@ -87,6 +89,32 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 export const licensesRelations = relations(licenses, ({ one }) => ({
   user: one(users, {
     fields: [licenses.userId],
+    references: [users.id],
+  }),
+}));
+
+export const products = pgTable("product", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  isHidden: boolean("isHidden").default(false).notNull(),
+  url: text("url"),
+  description: text("description"),
+  availability: text("availability").default("in stock").notNull(),
+  currency: text("currency").default("IDR").notNull(),
+  priceAmount1000: integer("priceAmount1000").notNull(),
+  salePriceAmount1000: integer("salePriceAmount1000"),
+  retailerId: text("retailerId"),
+  imageCdnUrls: jsonb("imageCdnUrls").$type<string[]>(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
+});
+
+export const productsRelations = relations(products, ({ one }) => ({
+  user: one(users, {
+    fields: [products.userId],
     references: [users.id],
   }),
 }));

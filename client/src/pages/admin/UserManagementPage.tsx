@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ColumnDef } from "@tanstack/react-table";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Repeat, Move } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ReassignLicenseDialog } from "@/components/dialogs/ReassignLicenseDialog";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -14,7 +16,7 @@ export interface User {
   name: string;
   email: string;
   role: "user";
-  license?: { key: string } | null;
+  license?: { key: string, id: string } | null;
 }
 
 interface Pagination {
@@ -29,6 +31,10 @@ export function UserManagementPage() {
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [isReassignDialogOpen, setReassignDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [reassignMode, setReassignMode] = useState<"swap" | "migrate">("swap");
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -36,6 +42,7 @@ export function UserManagementPage() {
     }, 500);
     return () => clearTimeout(handler);
   }, [searchTerm]);
+
   const { data, isLoading, isError, error } = useQuery<{ data: { items: User[], pagination: Pagination } }, Error>({
     queryKey: ["users", page, limit, debouncedSearchTerm],
     queryFn: async () => {
@@ -46,16 +53,55 @@ export function UserManagementPage() {
       return res.json();
     },
   });
+
   const { mutate: assignLicense, isPending: isAssigning } = useMutation({
     mutationFn: (userId: string) => fetch(`${SERVER_URL}/api/admin/users/${userId}/license`, { method: "POST", credentials: "include" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
   });
+
   const { mutate: removeLicense, isPending: isRemoving } = useMutation({
     mutationFn: (userId: string) => fetch(`${SERVER_URL}/api/admin/users/${userId}/license`, { method: "DELETE", credentials: "include" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
   });
+
+  const { mutate: reassignLicense, isPending: isReassigning } = useMutation({
+    mutationFn: (newUserId: string) => {
+      if (!selectedUser?.license) throw new Error("Selected user does not have a license.");
+      return fetch(`${SERVER_URL}/api/admin/licenses/reassign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ licenseId: selectedUser.license.id, newUserId }),
+        credentials: 'include',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setReassignDialogOpen(false);
+    },
+  });
+
+  const { mutate: migrateLicense, isPending: isMigrating } = useMutation({
+    mutationFn: (newUserId: string) => {
+      if (!selectedUser?.license) throw new Error("Selected user does not have a license.");
+      const targetUser = data?.data.items.find(u => u.id === newUserId);
+      if (!targetUser?.license) throw new Error("Target user does not have a license.");
+      return fetch(`${SERVER_URL}/api/admin/licenses/migrate-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceLicenseId: selectedUser.license.id, targetLicenseId: targetUser.license.id }),
+        credentials: 'include',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setReassignDialogOpen(false);
+    },
+  });
+
+
   const users = data?.data?.items || [];
   const pagination = data?.data?.pagination;
+
   const columns: ColumnDef<User>[] = [
     { id: "index", header: "No.", cell: ({ row }) => (page - 1) * limit + row.index + 1 },
     { accessorKey: "name", header: "Name" },
@@ -73,9 +119,35 @@ export function UserManagementPage() {
         return (
           <div className="flex justify-end space-x-2">
             {hasLicense ? (
-              <Button variant="destructive" size="sm" onClick={() => removeLicense(user.id)} disabled={isRemoving}>
-                <Trash2 className="mr-2 h-4 w-4" /> Remove License
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={() => { setSelectedUser(user); setReassignMode("swap"); setReassignDialogOpen(true); }} disabled={isReassigning}>
+                  <Repeat className="mr-2 h-4 w-4" /> Swap License
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Move className="mr-2 h-4 w-4" /> Migrate Data & Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will move all data (products, orders, customers) from {user.name} to another user, and then permanently delete {user.name}'s license. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => { setSelectedUser(user); setReassignMode("migrate"); setReassignDialogOpen(true); }}>
+                        Continue
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button variant="destructive" size="sm" onClick={() => removeLicense(user.id)} disabled={isRemoving}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Remove License
+                </Button>
+              </>
             ) : (
               <Button variant="default" size="sm" onClick={() => assignLicense(user.id)} disabled={isAssigning}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Assign License
@@ -89,6 +161,7 @@ export function UserManagementPage() {
 
   if (isLoading) return <div>Loading users...</div>;
   if (isError) return <div>Error fetching users: {error.message}</div>;
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
@@ -104,6 +177,21 @@ export function UserManagementPage() {
           itemPerPage={limit}
           onPageChange={setPage}
           onPerPageChange={(newLimit) => { setLimit(newLimit); setPage(1); }}
+        />
+      )}
+      {selectedUser && (
+        <ReassignLicenseDialog
+          open={isReassignDialogOpen}
+          onOpenChange={setReassignDialogOpen}
+          onSave={reassignMode === 'swap' ? reassignLicense : migrateLicense}
+          isSaving={isReassigning || isMigrating}
+          title={reassignMode === 'swap' ? 'Swap License' : 'Migrate Data & Delete License'}
+          description={
+            reassignMode === 'swap'
+              ? `Select a new user to assign ${selectedUser.name}'s license to.`
+              : `Select a user to migrate all of ${selectedUser.name}'s data to. The old license will be deleted.`
+          }
+          currentUser={selectedUser}
         />
       )}
     </main>

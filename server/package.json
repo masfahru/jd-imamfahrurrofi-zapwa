@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "bun --watch run src/index.ts",
+    "lint": "eslint . --fix",
     "db:generate": "bunx drizzle-kit generate",
     "db:migrate": "bunx drizzle-kit migrate",
     "db:seed": "bun src/core/db/seed.ts"
@@ -26,8 +27,12 @@
     "shared": "workspace:*"
   },
   "devDependencies": {
+    "@eslint/js": "^9.28.0",
     "@types/bun": "latest",
     "@types/pg": "^8.15.5",
-    "drizzle-kit": "^0.31.4"
+    "drizzle-kit": "^0.31.4",
+    "eslint": "^9.28.0",
+    "globals": "^16.2.0",
+    "typescript-eslint": "^8.34.0"
   }
 }

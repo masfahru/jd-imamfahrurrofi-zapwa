@@ -22,7 +22,6 @@ export const createOrder = async (licenseId: string, data: CreateOrderData) => {
       eq(products.licenseId, licenseId) // Ensure license owns the products
     ),
   });
-
   if (dbProducts.length !== productIds.length) {
     throw new HTTPException(400, { message: "One or more products are invalid or do not belong to you." });
   }
@@ -30,7 +29,6 @@ export const createOrder = async (licenseId: string, data: CreateOrderData) => {
   let customer = await db.query.customers.findFirst({
     where: and(eq(customers.phone, data.customer.phone), eq(customers.licenseId, licenseId)),
   });
-
   const authContext = await auth.$context;
   const generateId = authContext.generateId;
   if (typeof generateId !== "function") {
@@ -72,7 +70,6 @@ export const createOrder = async (licenseId: string, data: CreateOrderData) => {
       quantity: item.quantity,
     };
   });
-
   const newOrderId = generateId({ model: "order" }) || randomUUIDv7();
   const [newOrder] = await db.transaction(async (tx) => {
     const insertedOrder = await tx
@@ -96,7 +93,6 @@ export const createOrder = async (licenseId: string, data: CreateOrderData) => {
 
     return insertedOrder;
   });
-
   if (!newOrder) {
     throw new HTTPException(500, { message: "Failed to create order." });
   }
@@ -110,7 +106,6 @@ export const updateOrderStatus = async (licenseId: string, orderId: string, data
     .set({ status: data.status, updatedAt: new Date() })
     .where(and(eq(orders.id, orderId), eq(orders.licenseId, licenseId)))
     .returning();
-
   if (!updatedOrder) {
     throw new HTTPException(404, { message: "Order not found or you don't have permission to edit it." });
   }
@@ -123,7 +118,6 @@ export const deleteOrder = async (licenseId: string, orderId: string) => {
     .delete(orders)
     .where(and(eq(orders.id, orderId), eq(orders.licenseId, licenseId)))
     .returning({ id: orders.id });
-
   if (!deletedOrder) {
     throw new HTTPException(404, { message: "Order not found or you don't have permission to delete it." });
   }
@@ -139,16 +133,32 @@ export const getOrdersByLicenseId = async (
 ) => {
   const offset = (page - 1) * limit;
 
+  // First, get customer IDs that match the search if searching by name
+  let customerIds: string[] = [];
+  if (search) {
+    const matchingCustomers = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(and(
+        eq(customers.licenseId, licenseId),
+        ilike(customers.name, `%${search}%`)
+      ));
+    customerIds = matchingCustomers.map(c => c.id);
+  }
+
+  // Build where clause using customer IDs or order ID search
   const whereClause = and(
     eq(orders.licenseId, licenseId),
-    search ? or(ilike(orders.id, `%${search}%`), ilike(customers.name, `%${search}%`)) : undefined,
+    search ? or(
+      ilike(orders.id, `%${search}%`),
+      customerIds.length > 0 ? inArray(orders.customerId, customerIds) : undefined
+    ) : undefined,
     status && status !== 'all' ? eq(orders.status, status) : undefined,
   );
 
   const totalItemsResult = await db
     .select({ value: count() })
     .from(orders)
-    .leftJoin(customers, eq(orders.customerId, customers.id)) // Join for searching
     .where(whereClause);
 
   const totalItems = totalItemsResult[0]?.value || 0;
@@ -188,10 +198,46 @@ export const getOrderById = async (licenseId: string, orderId: string) => {
       customer: true,
     },
   });
-
   if (!order) {
     throw new HTTPException(404, { message: "Order not found or you don't have permission to view it." });
   }
 
   return order;
+};
+
+/**
+ * Finds a specific order for a customer using their phone number for verification.
+ * @param licenseId The license ID to scope the search.
+ * @param orderId The partial or full order ID provided by the customer.
+ * @param customerPhone The customer's phone number.
+ * @returns The order details if found, otherwise null.
+ */
+export const getOrderByCustomerPhoneAndId = async (
+  licenseId: string,
+  orderId: string,
+  customerPhone: string,
+) => {
+  // if orderId has # prefix, remove it
+  if (orderId.startsWith('#')) {
+    orderId = orderId.slice(1);
+  }
+
+  const result = await db
+    .select({
+      id: orders.id,
+      status: orders.status,
+      customerName: customers.name,
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(
+      and(
+        ilike(orders.id, `%${orderId}%`),
+        eq(orders.licenseId, licenseId),
+        eq(customers.phone, customerPhone),
+      ),
+    )
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
 };

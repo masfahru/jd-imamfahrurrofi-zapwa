@@ -66,7 +66,7 @@ export const licenses = pgTable("license", {
 
 export const products = pgTable("product", {
   id: text("id").primaryKey(),
-  licenseId: text("licenseId") // Changed from userId
+  licenseId: text("licenseId")
     .notNull()
     .references(() => licenses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -88,7 +88,7 @@ export type Product = typeof products.$inferSelect;
 // Customers Table
 export const customers = pgTable("customer", {
   id: text("id").primaryKey(),
-  licenseId: text("licenseId") // Changed from userId
+  licenseId: text("licenseId")
     .notNull()
     .references(() => licenses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
@@ -100,7 +100,7 @@ export const customers = pgTable("customer", {
 // Orders Table
 export const orders = pgTable("order", {
   id: text("id").primaryKey(),
-  licenseId: text("licenseId") // Changed from userId
+  licenseId: text("licenseId")
     .notNull()
     .references(() => licenses.id, { onDelete: "cascade" }),
   customerId: text("customerId")
@@ -142,9 +142,10 @@ export const chatMessages = pgTable("chat_messages", {
   sessionId: text("sessionId")
     .notNull()
     .references(() => chatSessions.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  role: text("role", { enum: ["user", "assistant", "tool"] }).notNull(),
   content: text("content").notNull(),
-  toolCalls: jsonb("toolCalls"), // Optional, for when the assistant decides to call a tool
+  toolCalls: jsonb("toolCalls"),
+  toolCallId: text("tool_call_id"),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
 });
 
@@ -155,7 +156,7 @@ export const aiAgents = pgTable("ai_agents", {
     .references(() => licenses.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   behavior: text("behavior").notNull(),
-  isActive: boolean("isActive").default(false).notNull(), // Add this line
+  isActive: boolean("isActive").default(false).notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow(),
 });
@@ -166,7 +167,7 @@ export const usersRelations = relations(users, ({ one }) => ({
 }));
 
 export const customersRelations = relations(customers, ({ one, many }) => ({
-  license: one(licenses, { fields: [customers.licenseId], references: [licenses.id] }), // Changed from user
+  license: one(licenses, { fields: [customers.licenseId], references: [licenses.id] }),
   orders: many(orders),
 }));
 
@@ -178,7 +179,7 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
-export const licensesRelations = relations(licenses, ({ one, many }) => ({ // Added many relations
+export const licensesRelations = relations(licenses, ({ one, many }) => ({
   user: one(users, { fields: [licenses.userId], references: [users.id] }),
   products: many(products),
   orders: many(orders),
@@ -188,12 +189,12 @@ export const licensesRelations = relations(licenses, ({ one, many }) => ({ // Ad
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
-  license: one(licenses, { fields: [products.licenseId], references: [licenses.id] }), // Changed from user
+  license: one(licenses, { fields: [products.licenseId], references: [licenses.id] }),
   orderItems: many(orderItems),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
-  license: one(licenses, { fields: [orders.licenseId], references: [licenses.id] }), // Changed from user
+  license: one(licenses, { fields: [orders.licenseId], references: [licenses.id] }),
   customer: one(customers, { fields: [orders.customerId], references: [customers.id] }),
   items: many(orderItems),
 }));

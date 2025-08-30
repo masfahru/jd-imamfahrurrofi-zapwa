@@ -5,11 +5,12 @@ import { ChatOpenAI } from "@langchain/openai";
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
-import { getCreateOrderTool } from "./ai.tools";
+import { getCreateOrderTool, getLocalOrderStatusTool } from "./ai.tools";
 import { formatProductsForPrompt, getSystemPrompt } from "./ai.prompts";
 import { closeSession, getOrCreateSession } from "./ai.session.manager";
 import { HTTPException } from "hono/http-exception";
 import { and, count, desc, eq, ne } from "drizzle-orm";
+import type { ToolCall } from "@langchain/core/messages/tool";
 
 /**
  * Main handler for processing an incoming chat message from a customer.
@@ -47,16 +48,29 @@ export async function handleChatMessage(
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
   });
+
   const createOrderTool = getCreateOrderTool(licenseId, productData.items);
-  const llmWithTools = llm.bindTools([createOrderTool]);
+  const orderStatusTool = getLocalOrderStatusTool(licenseId, currentSessionId);
+  const llmWithTools = llm.bindTools([createOrderTool, orderStatusTool]);
 
   const history: BaseMessage[] = [new SystemMessage(systemPrompt)];
   session.messages.forEach(msg => {
-    if (msg.role === 'user') history.push(new HumanMessage(msg.content));
-    else if (msg.role === 'assistant') history.push(new AIMessage(msg.content));
+    if (msg.role === 'user') {
+      history.push(new HumanMessage(msg.content));
+    } else if (msg.role === 'assistant') {
+      history.push(new AIMessage({
+        content: msg.content,
+        tool_calls: msg.toolCalls ? (msg.toolCalls as ToolCall[]) : undefined,
+      }));
+    } else if (msg.role === 'tool' && msg.toolCallId) {
+      history.push(new ToolMessage({
+        content: msg.content,
+        tool_call_id: msg.toolCallId,
+      }));
+    }
   });
-  history.push(new HumanMessage(userMessage));
 
+  history.push(new HumanMessage(userMessage));
   await db.insert(chatMessages).values({
     id: generateId({ model: 'message' }) || randomUUIDv7(),
     sessionId: currentSessionId,
@@ -70,32 +84,39 @@ export async function handleChatMessage(
   let newSessionIdForResponse = currentSessionId;
 
   if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
+    await db.insert(chatMessages).values({
+      id: generateId({ model: 'message' }) || randomUUIDv7(),
+      sessionId: currentSessionId,
+      role: 'assistant',
+      content: typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content),
+      toolCalls: aiResponse.tool_calls,
+    });
     history.push(aiResponse);
 
-    const toolCall = aiResponse.tool_calls[0];
-    // Add the check for toolCall.id to satisfy TypeScript
-    if (toolCall && toolCall.name === 'create_local_order' && toolCall.id) {
-      console.log("Invoking create_local_order tool with args:", toolCall.args);
-      const toolResult = await createOrderTool.invoke(toolCall.args);
+    let shouldCloseSession = false;
+    for (const toolCall of aiResponse.tool_calls) {
+      const toolToUse = toolCall.name === 'create_local_order' ? createOrderTool : orderStatusTool;
+      if (toolCall.name === 'create_local_order') shouldCloseSession = true;
 
-      history.push(new ToolMessage({
+      const toolResult = await toolToUse.invoke(toolCall.args);
+
+      await db.insert(chatMessages).values({
+        id: generateId({ model: 'message' }) || randomUUIDv7(),
+        sessionId: currentSessionId,
+        role: 'tool',
         content: toolResult,
-        tool_call_id: toolCall.id,
-      }));
-      assistantReply = `I've created your order! ${toolResult}`;
-      try {
-        console.log("Invoking LLM for the second time to synthesize the final response...");
-        const finalResponse = await llm.invoke(history);
-        assistantReply = finalResponse.content.toString();
-      } catch (e) {
-        console.log(e)
-      }
+        toolCallId: toolCall.id,
+      });
+      history.push(new ToolMessage({ content: toolResult, tool_call_id: toolCall.id! }));
+    }
 
+    const finalResponse = await llm.invoke(history);
+    assistantReply = finalResponse.content.toString();
+
+    if (shouldCloseSession) {
       await closeSession(currentSessionId);
       const newSession = await getOrCreateSession(licenseId, null, customerIdentifier);
       newSessionIdForResponse = newSession.id;
-    } else {
-      assistantReply = "I was about to perform an action, but there was an issue. Please clarify your request.";
     }
   } else {
     assistantReply = aiResponse.content.toString();
@@ -103,10 +124,9 @@ export async function handleChatMessage(
 
   await db.insert(chatMessages).values({
     id: generateId({ model: 'message' }) || randomUUIDv7(),
-    sessionId: newSessionIdForResponse,
+    sessionId: newSessionIdForResponse, // Use the potentially new session ID
     role: 'assistant',
     content: assistantReply,
-    toolCalls: aiResponse.tool_calls ?? null,
   });
 
   return {

@@ -1,5 +1,5 @@
 import { db } from "@server/core/db/drizzle";
-import { users, accounts, ROLES } from "@server/core/db/schema";
+import { users, accounts, ROLES, licenses } from "@server/core/db/schema";
 import { and, count, eq, ilike, inArray, ne, or } from "drizzle-orm";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
@@ -23,7 +23,6 @@ export const addAdmin = async (
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, email),
   });
-
   if (existingUser) {
     throw new HTTPException(400, { message: "User with this email already exists." });
   }
@@ -31,7 +30,6 @@ export const addAdmin = async (
   const authContext = await auth.$context;
   const passwordHasher = authContext.password;
   const generateId = authContext.generateId;
-
   if (typeof generateId !== "function" || !passwordHasher) {
     throw new HTTPException(500, { message: "Auth context is not properly configured." });
   }
@@ -120,7 +118,6 @@ export const setUserRole = async (
  */
 export const getAdmins = async (page: number, limit: number, search?: string) => {
   const offset = (page - 1) * limit;
-
   // Build the where clause directly. `and` will ignore the `undefined` from the search condition if `search` is falsy.
   const whereClause = and(
     inArray(users.role, ["admin", "super admin"]),
@@ -187,6 +184,13 @@ export const getUsers = async (page: number, limit: number) => {
       name: true,
       role: true,
       banned: true,
+    },
+    with: {
+      license: {
+        columns: {
+          key: true,
+        },
+      },
     },
     where: whereClause,
     offset,
@@ -301,7 +305,6 @@ export const changeAdminPassword = async (
 
   const authContext = await auth.$context;
   const passwordHasher = authContext.password;
-
   if (!passwordHasher) {
     throw new HTTPException(500, { message: 'Password hasher is not configured.' });
   }

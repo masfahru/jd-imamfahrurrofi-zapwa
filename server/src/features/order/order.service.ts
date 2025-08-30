@@ -1,6 +1,6 @@
 import { db } from "@server/core/db/drizzle";
-import { orders, orderItems, products, customers } from "@server/core/db/schema";
-import { and, count, desc, eq, ilike, inArray } from "drizzle-orm";
+import {orders, orderItems, products, customers } from "@server/core/db/schema";
+import {and, count, desc, eq, ilike, inArray, or} from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "@server/features/auth/auth.config";
 import { randomUUIDv7 } from "bun";
@@ -135,14 +135,22 @@ export const getOrdersByLicenseId = async (
   page: number,
   limit: number,
   search?: string,
+  status?: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | "all",
 ) => {
   const offset = (page - 1) * limit;
+
   const whereClause = and(
     eq(orders.licenseId, licenseId),
-    search ? ilike(orders.id, `%${search}%`) : undefined,
+    search ? or(ilike(orders.id, `%${search}%`), ilike(customers.name, `%${search}%`)) : undefined,
+    status && status !== 'all' ? eq(orders.status, status) : undefined,
   );
 
-  const totalItemsResult = await db.select({ value: count() }).from(orders).where(whereClause);
+  const totalItemsResult = await db
+    .select({ value: count() })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customerId, customers.id)) // Join for searching
+    .where(whereClause);
+
   const totalItems = totalItemsResult[0]?.value || 0;
   const totalPages = Math.ceil(totalItems / limit);
 

@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CreateOrderDialog } from "@/components/dialogs/create-order-dialog";
 import { EditOrderDialog } from "@/components/dialogs/edit-order-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -30,11 +32,11 @@ export function OrdersPage() {
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -45,10 +47,13 @@ export function OrdersPage() {
   }, [searchTerm]);
 
   const { data: orderData, isLoading, isError, error } = useQuery<PaginatedResponse<Order>, Error>({
-    queryKey: ["orders", page, limit, debouncedSearchTerm],
+    queryKey: ["orders", page, limit, debouncedSearchTerm, statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
       const res = await fetch(`${SERVER_URL}/api/user/orders?${params.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch orders.");
       return res.json();
@@ -60,10 +65,10 @@ export function OrdersPage() {
     setCreateDialogOpen(false);
     setEditDialogOpen(false);
     setSelectedOrder(null);
-  }
+  };
 
   const { mutate: createOrder, isPending: isCreating } = useMutation({
-    mutationFn: (newOrder: { items: { productId: string; quantity: number }[] }) =>
+    mutationFn: (newOrder: { items: { productId: string; quantity: number }[]; customer: { name: string, phone: string } }) =>
       fetch(`${SERVER_URL}/api/user/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,6 +97,7 @@ export function OrdersPage() {
 
   const columns: ColumnDef<Order>[] = [
     { accessorKey: "id", header: "Order ID", cell: ({ row }) => `#${row.original.id.slice(0, 8).toUpperCase()}` },
+    { accessorKey: "customer.name", header: "Customer" },
     { accessorKey: "status", header: "Status", cell: ({ row }) => <Badge variant={row.original.status === 'delivered' ? 'default' : 'secondary'} className="capitalize">{row.original.status}</Badge> },
     { accessorKey: "createdAt", header: "Date", cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString() },
     { accessorKey: "totalAmount1000", header: () => <div className="text-right">Total</div>, cell: ({ row }) => <div className="text-right">{formatCurrency(row.original.totalAmount1000 / 1000)}</div> },
@@ -131,8 +137,34 @@ export function OrdersPage() {
         <Button onClick={() => setCreateDialogOpen(true)}><PlusCircle className="mr-2 h-4 w-4"/> Create Order</Button>
       </div>
 
-      <DataTableToolbar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter orders by ID..." />
+      <DataTableToolbar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="Filter orders by ID or customer..."
+      >
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="status-filter" className="whitespace-nowrap text-sm font-medium">Status</Label>
+          <Select value={statusFilter} onValueChange={(value) => {
+            setStatusFilter(value);
+            setPage(1);
+          }}>
+            <SelectTrigger id="status-filter" className="h-8 w-[150px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </DataTableToolbar>
+
       {isLoading ? (<div>Loading orders...</div>) : (<DataTable columns={columns} data={orderData?.data?.items ?? []} />)}
+
       {orderData?.data?.pagination && (
         <DataTablePagination
           currentPage={orderData.data.pagination.currentPage}

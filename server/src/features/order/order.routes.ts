@@ -27,13 +27,14 @@ app.openapi(createOrderRoute, async (c) => {
 
 app.openapi(getOrdersRoute, async (c) => {
   const license = c.get("license");
-  const { page, limit, search } = c.req.valid("query");
+  const { page, limit, search, status } = c.req.valid("query");
 
-  const result = await getOrdersByLicenseId( // Renamed
+  const result = await getOrdersByLicenseId(
     license.id,
     parseInt(page),
     parseInt(limit),
     search,
+    status,
   );
   return jsonResponse(c, "Orders retrieved successfully", result);
 });

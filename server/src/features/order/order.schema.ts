@@ -22,8 +22,9 @@ export const OrderSchema = z.object({
   id: z.string(),
   totalAmount1000: z.number().int(),
   status: z.enum(ORDER_STATUSES),
-  createdAt: z.string().datetime(),
-  items: z.array(OrderItemSchema),
+  createdAt: z.iso.datetime(),
+  items: z.array(z.any()),
+  customer: CustomerSchema,
 }).openapi("Order");
 
 // Schemas for request bodies
@@ -52,12 +53,12 @@ export const OrderIdParamsSchema = z.object({
   }),
 });
 
-
 // Schema for query parameters when fetching a list of orders
 export const GetOrdersQuerySchema = z.object({
   page: z.string().optional().default("1"),
   limit: z.string().optional().default("10"),
   search: z.string().optional(),
+  status: z.enum([...ORDER_STATUSES, "all"]).optional().default("all"),
 });
 
 // Response Schemas

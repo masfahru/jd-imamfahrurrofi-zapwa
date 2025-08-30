@@ -65,11 +65,11 @@ app.openapi(getAdminsRoute, async (c) => {
 });
 
 app.openapi(getUsersRoute, async (c) => {
-  const { page = '1', limit = '10' } = c.req.query();
+  const { page, limit, search } = c.req.valid('query');
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
 
-  const users = await getUsers(pageNumber, limitNumber);
+  const users = await getUsers(pageNumber, limitNumber, search);
 
   return jsonResponse(c, 'Users retrieved successfully', users, 200);
 });

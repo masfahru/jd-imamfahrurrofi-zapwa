@@ -29,7 +29,6 @@ export function UserManagementPage() {
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -37,7 +36,6 @@ export function UserManagementPage() {
     }, 500);
     return () => clearTimeout(handler);
   }, [searchTerm]);
-
   const { data, isLoading, isError, error } = useQuery<{ data: { items: User[], pagination: Pagination } }, Error>({
     queryKey: ["users", page, limit, debouncedSearchTerm],
     queryFn: async () => {
@@ -48,20 +46,16 @@ export function UserManagementPage() {
       return res.json();
     },
   });
-
   const { mutate: assignLicense, isPending: isAssigning } = useMutation({
     mutationFn: (userId: string) => fetch(`${SERVER_URL}/api/admin/users/${userId}/license`, { method: "POST", credentials: "include" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
   });
-
   const { mutate: removeLicense, isPending: isRemoving } = useMutation({
     mutationFn: (userId: string) => fetch(`${SERVER_URL}/api/admin/users/${userId}/license`, { method: "DELETE", credentials: "include" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
   });
-
   const users = data?.data?.items || [];
   const pagination = data?.data?.pagination;
-
   const columns: ColumnDef<User>[] = [
     { id: "index", header: "No.", cell: ({ row }) => (page - 1) * limit + row.index + 1 },
     { accessorKey: "name", header: "Name" },
@@ -95,13 +89,12 @@ export function UserManagementPage() {
 
   if (isLoading) return <div>Loading users...</div>;
   if (isError) return <div>Error fetching users: {error.message}</div>;
-
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl">User Management</h1>
       </div>
-      <DataTableToolbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+      <DataTableToolbar searchTerm={searchTerm} onSearchChange={setSearchTerm} placeholder="Filter users by name or email..." />
       <DataTable columns={columns} data={users} />
       {pagination && (
         <DataTablePagination

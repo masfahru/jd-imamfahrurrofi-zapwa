@@ -165,11 +165,21 @@ export const getAdmins = async (page: number, limit: number, search?: string) =>
  * Fetches a paginated list of users with the 'user' role from the database.
  * @param page - The current page number (1-based).
  * @param limit - The number of items per page.
+ * @param search - Optional search term to filter by name or email.
  * @returns A promise that resolves to a paginated response object.
  */
-export const getUsers = async (page: number, limit: number) => {
+export const getUsers = async (page: number, limit: number, search?: string) => {
   const offset = (page - 1) * limit;
-  const whereClause = eq(users.role, "user");
+  const whereClause = and(
+    eq(users.role, "user"),
+    search
+      ? or(
+        ilike(users.name, `%${search}%`),
+        ilike(users.email, `%${search}%`),
+      )
+      : undefined,
+  );
+
 
   // Get total count of users
   const totalItemsResult = await db.select({ value: count() }).from(users).where(whereClause);

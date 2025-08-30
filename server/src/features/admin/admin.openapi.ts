@@ -189,6 +189,13 @@ export const getUsersRoute = createRoute({
   security: [{ BearerAuth: [] }],
   summary: "List all users",
   tags: ["Admin"],
+  request: {
+    query: z.object({
+      page: z.string().optional().default("1"),
+      limit: z.string().optional().default("10"),
+      search: z.string().optional(),
+    }),
+  },
   responses: {
     200: {
       content: {

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { Bot } from "lucide-react";
 
 export function UserMainNav() {
   const navItems = [
@@ -23,6 +24,11 @@ export function UserMainNav() {
       title: "AI Agents",
       href: "/dashboard/ai-agents",
       icon: Icons.aiAgents,
+    },
+    {
+      title: "Chat",
+      href: "/dashboard/chat",
+      icon: Bot,
     },
   ];
 

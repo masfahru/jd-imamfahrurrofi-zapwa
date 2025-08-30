@@ -31,7 +31,7 @@ export async function handleChatMessage(
   const session = await getOrCreateSession(licenseId, sessionId, customerIdentifier);
   const currentSessionId = session.id;
 
-  const productData = await getProductsByLicenseId(licenseId, 1, 1000); // Fetch up to 1000 products for context
+  const productData = await getProductsByLicenseId(licenseId, 1, 1000);
   const formattedProducts = formatProductsForPrompt(productData.items);
 
   const activeAgent = await db.query.aiAgents.findFirst({
@@ -46,7 +46,6 @@ export async function handleChatMessage(
   const llm = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     model: process.env.OPENAI_MODEL || 'gpt-5-nano',
-    temperature: 0.2,
   });
   const createOrderTool = getCreateOrderTool(licenseId, productData.items);
   const llmWithTools = llm.bindTools([createOrderTool]);
@@ -74,6 +73,7 @@ export async function handleChatMessage(
     const toolCall = aiResponse.tool_calls[0];
 
     if (toolCall) {
+      console.log(toolCall.args)
       assistantReply = await createOrderTool.invoke(toolCall.args);
 
       // Session Lifecycle: Close old session and create a new one
@@ -91,7 +91,7 @@ export async function handleChatMessage(
 
   await db.insert(chatMessages).values({
     id: generateId({ model: 'message' }) || randomUUIDv7(),
-    sessionId: newSessionIdForResponse, // Use the new session ID if one was created
+    sessionId: newSessionIdForResponse,
     role: 'assistant',
     content: assistantReply,
     toolCalls: aiResponse.tool_calls ?? null,

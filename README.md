@@ -1,6 +1,6 @@
 # JD_010-IMAMFAHRURROFI-ZAPWA
 
-## ZapWA - AI-Powered Customer Service
+## ZapWA - AI-Powered Customer Service Platform
 
 ZapWA is a full-stack monorepo application designed to provide AI-powered customer service and order management. It features a user-facing dashboard for managing products, orders, and AI agents, alongside a powerful admin panel for user and license management.
 

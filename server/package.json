@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "dev": "bun --watch run src/index.ts",
     "lint": "eslint . --fix",
     "db:generate": "bunx drizzle-kit generate",

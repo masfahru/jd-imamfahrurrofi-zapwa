@@ -1,0 +1,80 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  # The PostgreSQL Database Service with pgvector
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: zapwa-db
+    hostname: db # The hostname inside the Docker network
+    restart: always
+    ports:
+      # Expose the database on the host machine at port 5432
+      - "5432:5432"
+    env_file:
+      - .env.compose
+    volumes:
+      # Persist database data on the host machine
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - zapwa-net
+    healthcheck:
+      # Test to see if the database is ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U myuser -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # New service for running database migrations
+  migrate:
+    image: idemyid/zapwa-server:latest # Use the same image as the server
+    container_name: zapwa-migrate
+    working_dir: /app/server # <-- ADD THIS LINE
+    command: ["bun", "run", "db:migrate"] # This will now run from /app/server
+    env_file:
+      - .env.compose
+    networks:
+      - zapwa-net
+    depends_on:
+      db:
+        condition: service_healthy # Wait for the db to be ready before migrating
+
+  # The Server/API Service
+  server:
+    # Use the image you published to Docker Hub
+    image: idemyid/zapwa-server:latest
+    container_name: zapwa-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.compose
+    # Wait for the migrate service to finish successfully before starting the server
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - zapwa-net
+
+  # The Client/Web Service
+  client:
+    # Use the client image you published to Docker Hub
+    image: idemyid/zapwa-client:latest
+    container_name: zapwa-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    # This service depends on the server starting first
+    depends_on:
+      - server
+    networks:
+      - zapwa-net
+
+# Define the network for the services to communicate
+networks:
+  zapwa-net:
+    driver: bridge
+
+# Define the named volume for persistent database storage
+volumes:
+  postgres_data:

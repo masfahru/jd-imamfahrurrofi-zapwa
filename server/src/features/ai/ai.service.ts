@@ -53,7 +53,7 @@ export async function handleChatMessage(
 
   const llm = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4.1-nano',
+    model: process.env.OPENAI_MODEL || 'gpt-5-mini',
     callbacks: [
       {
         handleLLMEnd(output) {
@@ -158,7 +158,7 @@ export async function handleChatMessage(
       history.push(new ToolMessage({ content: toolResult, tool_call_id: toolCall.id! }));
       // need to tell the llm if the order was created successfully so it can respond appropriately
       if (toolCall.name === 'create_local_order') {
-        history.push(new HumanMessage("please inform me if the order was created successfully or not, if the order was created then give me the order details from Tool Message" ));
+        history.push(new HumanMessage("beri tahu saya mengenai ringkasan order yang telah dibuat jika tersedia." ));
       }
     }
 

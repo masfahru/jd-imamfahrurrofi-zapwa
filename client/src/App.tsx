@@ -18,13 +18,14 @@ import { AIAgentsPage } from "./pages/user/AIAgentsPage";
 import { ChatPage } from "./pages/user/ChatPage";
 import { ChatLogPage } from "./pages/user/ChatLogPage";
 import { Toaster } from "sonner";
+import { LandingPage } from "@/pages/LandingPage.tsx";
 
 function App() {
   return (
     <BrowserRouter>
       <Toaster richColors />
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Navigate to="/user/login" replace />} />
 
         <Route path="/admin/login" element={<Login />} />

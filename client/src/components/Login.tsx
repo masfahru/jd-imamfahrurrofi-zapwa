@@ -1,7 +1,7 @@
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
-import { useState, useEffect } from "react"; // Import useEffect
+import { Link, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { Button } from "@/components/ui/button";
@@ -164,13 +164,16 @@ export function Login() {
               </p>
             )}
           </CardContent>
-          <CardFooter className="mt-3">
+          <CardFooter className="mt-3 flex-col">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isPending
                 ? "Signing In..."
                 : isVerifying
                   ? "Verifying..."
                   : "Sign In"}
+            </Button>
+            <Button asChild variant="link" size="sm" className="mt-4">
+              <Link to="/">← Back to Home</Link>
             </Button>
           </CardFooter>
         </form>

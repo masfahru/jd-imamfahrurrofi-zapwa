@@ -1,6 +1,6 @@
 import { useForm } from "@mantine/form";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
@@ -135,12 +135,15 @@ export function UserLoginPage() {
             </div>
             {form.errors.root && <p className="text-sm font-medium text-destructive">{form.errors.root}</p>}
           </CardContent>
-          <CardFooter className="mt-3 flex-col gap-4">
+          <CardFooter className="mt-3 flex-col gap-2">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
             </Button>
-            <Button variant="link" size="sm" onClick={() => navigate('/user/signup')}>
-              Don't have an account? Sign Up
+            <Button asChild variant="link" size="sm">
+              <Link to="/user/signup">Don't have an account? Sign Up</Link>
+            </Button>
+            <Button asChild variant="link" size="sm">
+              <Link to="/">← Back to Home</Link>
             </Button>
           </CardFooter>
         </form>

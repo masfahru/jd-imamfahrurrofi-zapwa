@@ -39,23 +39,117 @@ The repository is structured as a monorepo with three main packages:
 * `server/`: The Hono backend API.
 * `shared/`: Shared TypeScript types and utilities between the client and server.
 
-## 🏁 Getting Started
+🏁 Getting Started
+------------------
 
-Follow these instructions to get the project up and running on your local machine.
+### 🐳 Running with Docker (Recommended)
 
-### Prerequisites
+This is the easiest way to get the entire application stack---database, server, and client---running with a single command.
 
-* [Bun](https://bun.sh/docs/installation) (v1.2.4 or higher)
-* [PostgreSQL](https://www.postgresql.org/download/)
+#### Prerequisites
 
-### 1. Clone the Repository
+-   [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
-```bash
-git clone [https://github.com/masfahru/jd-imamfahrurrofi-zapwa.git](https://github.com/masfahru/jd-imamfahrurrofi-zapwa.git)
+#### 1. Clone the Repository
+
+Bash
+
+```
+git clone https://github.com/masfahru/jd-imamfahrurrofi-zapwa.git
 cd jd-imamfahrurrofi-zapwa
+
 ```
 
-### 2. Install Dependencies
+#### 2. Environment Configuration
+
+The Docker setup uses a single, unified environment file for all services.
+
+1.  Copy the example environment file:
+
+    Bash
+
+    ```
+    cp .env.compose.example .env.compose
+
+    ```
+
+2.  Open the `.env.compose` file and fill in the required secrets. You only need to change these two variables:
+
+    Code snippet
+
+    ```
+    # Secret key for better-auth session management.
+    # Generate one with: openssl rand -base64 32
+    BETTER_AUTH_SECRET='replace-with-your-strong-secret-key'
+
+    # API key for OpenAI services.
+    OPENAI_API_KEY='your_openai_api_key_here'
+
+    ```
+
+    > **Note:** The `DATABASE_URL`, `CLIENT_URL`, and `VITE_SERVER_URL` are pre-configured to work within Docker's internal network and should not be changed for this setup.
+
+#### 3. Build and Run the Application
+
+Run the following command from the root of the project. This will pull the pre-built Docker images, create the network and database volume, run the database migrations, and start the client and server.
+
+Bash
+
+```
+docker-compose up -d
+```
+
+#### 🎉 You're Ready!
+
+The application is now fully running:
+
+-   **Frontend Client:**  [http://localhost:8080](https://www.google.com/search?q=http://localhost:8080)
+
+-   **Backend Server:**  [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000)
+
+-   **API Documentation:** [http://localhost:3000/api/reference](https://www.google.com/search?q=http://localhost:3000/api/reference)
+
+#### 🔑 Default Credentials
+
+You can now log in to the admin panel with the default credentials:
+
+-   **Email:** `super@admin.com`
+
+-   **Password:** `superadmin`
+
+#### Stopping the Application
+
+To stop all the services, run:
+
+Bash
+
+```
+docker-compose down
+```
+
+* * * * *
+
+### 🛠️ Local Development Setup (Without Docker)
+
+Follow these instructions to run the project on your local machine without using Docker.
+
+#### Prerequisites
+
+-   [Bun](https://bun.sh/docs/installation) (v1.2.4 or higher)
+
+-   [PostgreSQL](https://www.postgresql.org/download/)
+
+#### 1. Clone the Repository
+
+Bash
+
+```
+git clone https://github.com/masfahru/jd-imamfahrurrofi-zapwa.git
+cd jd-imamfahrurrofi-zapwa
+
+```
+
+#### 2. Install Dependencies
 
 Install all dependencies for all workspaces using a single command from the root directory:
 
@@ -66,17 +160,23 @@ bun install
 
 ```
 
-### 3. Environment Configuration
+#### 3. Environment Configuration
 
 You need to set up environment variables for both the server and the client.
 
 **For the Server:**
 
-1.  Navigate to the `server` directory.
+1.  Navigate to the
 
-2.  Copy the example environment file: `cp .env.example .env`
+    `server` directory.
 
-3.  Edit the `.env` file with your credentials:
+2.  Copy the example environment file:
+
+    `cp .env.example .env`
+
+3.  Edit the
+
+    `.env` file with your credentials:
 
     Code snippet
 
@@ -104,11 +204,14 @@ You need to set up environment variables for both the server and the client.
 
     ```
     VITE_SERVER_URL='http://localhost:3000'
+
     ```
 
-### 4. Database Setup
+#### 4. Database Setup
 
-From the **root** of the project, run the following commands to set up your PostgreSQL database schema and seed it with the initial super admin user.
+From the
+
+**root** of the project, run the following commands to set up your PostgreSQL database schema and seed it with the initial super admin user.
 
 1.  **Generate Migrations:** (Optional, only if you change the schema)
 
@@ -134,9 +237,11 @@ From the **root** of the project, run the following commands to set up your Post
     bun db:seed
     ```
 
-### 5. Running the Application
+#### 5. Running the Application
 
-Run both the client and server concurrently in development mode from the **root** directory:
+Run both the client and server concurrently in development mode from the
+
+**root** directory:
 
 Bash
 
@@ -144,12 +249,15 @@ Bash
 bun dev
 ```
 
--   The backend server will start on `http://localhost:3000`.
+-   The backend server will start on
 
--   The frontend development server will start on `http://localhost:5173`.
+    `http://localhost:3000`.
 
-🔑 Default Credentials
-----------------------
+-   The frontend development server will start on
+
+    `http://localhost:5173`.
+
+#### 🔑 Default Credentials
 
 After seeding the database, you can log in to the admin panel with the following credentials:
 

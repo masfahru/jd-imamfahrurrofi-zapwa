@@ -1,4 +1,4 @@
-ZapWA - AI-Powered Commerce Platform
+ZapWA - AI-Powered Customer Service Platform
 =============================================
 
 Overview

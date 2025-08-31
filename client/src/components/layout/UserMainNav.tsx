@@ -1,7 +1,7 @@
 import { NavLink } from "react-router";
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { Bot } from "lucide-react";
+import { Bot, MessageSquareText } from "lucide-react";
 
 export function UserMainNav() {
   const navItems = [
@@ -29,6 +29,11 @@ export function UserMainNav() {
       title: "Chat",
       href: "/dashboard/chat",
       icon: Bot,
+    },
+    {
+      title: "Chat Logs",
+      href: "/dashboard/chat-logs",
+      icon: MessageSquareText,
     },
   ];
 

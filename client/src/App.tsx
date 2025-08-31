@@ -16,6 +16,7 @@ import { ProductsPage } from "./pages/user/ProductsPage";
 import { OrdersPage } from "./pages/user/OrdersPage";
 import { AIAgentsPage } from "./pages/user/AIAgentsPage";
 import { ChatPage } from "./pages/user/ChatPage";
+import { ChatLogPage } from "./pages/user/ChatLogPage";
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="orders" element={<OrdersPage />} />
             <Route path="ai-agents" element={<AIAgentsPage />} />
             <Route path="chat" element={<ChatPage />} />
+            <Route path="chat-logs" element={<ChatLogPage />} />
           </Route>
         </Route>
 

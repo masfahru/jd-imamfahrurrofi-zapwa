@@ -22,15 +22,14 @@ export function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="container mx-auto flex flex-col items-center gap-4 px-4 py-20 text-center md:px-6 md:py-32">
           <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-            Automate Your WhatsApp Business with AI
+            Automate Your Business with AI
           </h1>
           <p className="max-w-2xl text-muted-foreground md:text-xl">
             ZapWA is a prototype demonstrating how an AI-powered agent can
             manage product inquiries and process orders directly through
-            WhatsApp, streamlining your customer service.
+            chat, streamlining your customer service.
           </p>
           <div className="flex gap-4 mt-6">
             <Button asChild size="lg">
@@ -99,7 +98,7 @@ export function LandingPage() {
               </h2>
               <p
                 className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Follow these simple steps to get your automated WhatsApp store
+                Follow these simple steps to get your automated store
                 up and running.
               </p>
             </div>
@@ -132,7 +131,7 @@ export function LandingPage() {
                 </CardHeader>
                 <CardContent>
                   <p>
-                    The AI interacts with customers via WhatsApp, answers
+                    The AI interacts with customers via chat, answers
                     questions, and creates orders in your dashboard.
                   </p>
                 </CardContent>

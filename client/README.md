@@ -4,7 +4,7 @@ ZapWA - AI-Powered Commerce Platform
 Overview
 --------
 
-ZapWA is a powerful web application designed to help businesses sell products and manage customer interactions through an AI-driven WhatsApp interface. It features two distinct panels:
+ZapWA is a powerful web application designed to help businesses sell products and manage customer interactions through an AI-driven chat interface. It features two distinct panels:
 
 1.  **Admin Dashboard**: For system administrators to manage users, licenses, and other administrators.
 

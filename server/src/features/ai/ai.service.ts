@@ -53,10 +53,11 @@ export async function handleChatMessage(
 
   const llm = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    model: process.env.OPENAI_MODEL || 'gpt-4.1-nano',
     callbacks: [
       {
         handleLLMEnd(output) {
+          // console.log('LLM output:', JSON.stringify(output, null, 2));
           if (output.llmOutput?.tokenUsage) {
             tokenUsage = {
               totalTokens: output.llmOutput.tokenUsage.totalTokens,
@@ -78,9 +79,26 @@ export async function handleChatMessage(
     if (msg.role === 'user') {
       history.push(new HumanMessage(msg.content));
     } else if (msg.role === 'assistant') {
+      // Properly reconstruct tool calls from the database
+      let toolCalls: ToolCall[] | undefined;
+      if (msg.toolCalls) {
+        try {
+          const parsedToolCalls = Array.isArray(msg.toolCalls) ? msg.toolCalls : [msg.toolCalls];
+          toolCalls = parsedToolCalls.map((tc) => ({
+            name: tc.name,
+            args: tc.args || tc.arguments,
+            id: tc.id,
+            type: "tool_call" as const
+          }));
+        } catch (error) {
+          console.error('Error parsing tool calls from database:', error);
+          toolCalls = undefined;
+        }
+      }
+
       history.push(new AIMessage({
         content: msg.content,
-        tool_calls: msg.toolCalls ? (msg.toolCalls as ToolCall[]) : undefined,
+        tool_calls: toolCalls,
       }));
     } else if (msg.role === 'tool' && msg.toolCallId) {
       history.push(new ToolMessage({
@@ -105,17 +123,25 @@ export async function handleChatMessage(
   let newSessionIdForResponse = currentSessionId;
 
   if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
+    // Save the assistant's message with properly structured tool calls
     await db.insert(chatMessages).values({
       id: generateId({ model: 'message' }) || randomUUIDv7(),
       sessionId: currentSessionId,
       role: 'assistant',
       content: typeof aiResponse.content === 'string' ? aiResponse.content : JSON.stringify(aiResponse.content),
-      toolCalls: aiResponse.tool_calls,
+      // Ensure tool calls are saved in a consistent format
+      toolCalls: aiResponse.tool_calls.map(tc => ({
+        id: tc.id,
+        name: tc.name,
+        args: tc.args,
+        type: tc.type
+      })),
       tokenUsage,
     });
     history.push(aiResponse);
 
     let shouldCloseSession = false;
+
     for (const toolCall of aiResponse.tool_calls) {
       const toolToUse = toolCall.name === 'create_local_order' ? createOrderTool : orderStatusTool;
       if (toolCall.name === 'create_local_order') shouldCloseSession = true;
@@ -130,9 +156,15 @@ export async function handleChatMessage(
         toolCallId: toolCall.id,
       });
       history.push(new ToolMessage({ content: toolResult, tool_call_id: toolCall.id! }));
+      // need to tell the llm if the order was created successfully so it can respond appropriately
+      if (toolCall.name === 'create_local_order') {
+        history.push(new HumanMessage("please inform me if the order was created successfully or not, if the order was created then give me the order details from Tool Message" ));
+      }
     }
 
+    // Always generate a natural language response after tool execution
     tokenUsage = null;
+    console.log(history)
     const finalResponse = await llm.invoke(history);
     assistantReply = finalResponse.content.toString();
 

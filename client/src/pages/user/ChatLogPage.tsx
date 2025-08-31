@@ -117,9 +117,12 @@ export function ChatLogPage() {
       accessorKey: "sessionId",
       header: "Session",
       cell: ({ row }) => (
-        <span className="font-mono text-xs">
-          {row.original.sessionId.slice(0, 8)}...
-        </span>
+        <Input
+          value={row.original.sessionId}
+          readOnly
+          className="font-mono text-xs h-8 w-48 cursor-text"
+          onClick={(e) => e.currentTarget.select()}
+        />
       ),
     },
     {

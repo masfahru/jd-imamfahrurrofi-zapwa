@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputPassword } from "@/components/ui/input-password";
+import { toast } from "sonner";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -93,6 +94,7 @@ export function UserLoginPage() {
         await logout();
         if (err instanceof Error) {
           form.setErrors({ root: err.message });
+          toast.error(err.message);
         }
       } finally {
         setIsVerifying(false);
@@ -100,6 +102,7 @@ export function UserLoginPage() {
     },
     onError: (err) => {
       form.setErrors({ root: err.message });
+      toast.error(err.message);
     },
   });
 

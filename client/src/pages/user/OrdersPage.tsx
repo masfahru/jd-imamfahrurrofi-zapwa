@@ -13,6 +13,7 @@ import { CreateOrderDialog } from "@/components/dialogs/create-order-dialog";
 import { EditOrderDialog } from "@/components/dialogs/edit-order-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -67,6 +68,10 @@ export function OrdersPage() {
     setSelectedOrder(null);
   };
 
+  const handleMutationError = (error: Error) => {
+    toast.error(error.message || "An unexpected error occurred.");
+  };
+
   const { mutate: createOrder, isPending: isCreating } = useMutation({
     mutationFn: (newOrder: { items: { productId: string; quantity: number }[]; customer: { name: string, phone: string } }) =>
       fetch(`${SERVER_URL}/api/user/orders`, {
@@ -75,7 +80,11 @@ export function OrdersPage() {
         body: JSON.stringify(newOrder),
         credentials: 'include',
       }).then(res => { if (!res.ok) throw new Error('Failed to create order'); return res.json(); }),
-    onSuccess: handleSuccess,
+    onSuccess: () => {
+      toast.success("Order created successfully!");
+      handleSuccess();
+    },
+    onError: handleMutationError,
   });
 
   const { mutate: updateOrder, isPending: isUpdating } = useMutation({
@@ -86,13 +95,21 @@ export function OrdersPage() {
         body: JSON.stringify(data),
         credentials: 'include',
       }).then(res => { if (!res.ok) throw new Error('Failed to update order'); return res.json(); }),
-    onSuccess: handleSuccess,
+    onSuccess: () => {
+      toast.success("Order updated successfully!");
+      handleSuccess();
+    },
+    onError: handleMutationError,
   });
 
   const { mutate: deleteOrder } = useMutation({
     mutationFn: (orderId: string) =>
       fetch(`${SERVER_URL}/api/user/orders/${orderId}`, { method: 'DELETE', credentials: 'include' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+    onSuccess: () => {
+      toast.success("Order deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["orders"] })
+    },
+    onError: handleMutationError,
   });
 
   const columns: ColumnDef<Order>[] = [

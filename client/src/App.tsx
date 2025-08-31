@@ -17,10 +17,12 @@ import { OrdersPage } from "./pages/user/OrdersPage";
 import { AIAgentsPage } from "./pages/user/AIAgentsPage";
 import { ChatPage } from "./pages/user/ChatPage";
 import { ChatLogPage } from "./pages/user/ChatLogPage";
+import { Toaster } from "sonner";
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster richColors />
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<Navigate to="/user/login" replace />} />

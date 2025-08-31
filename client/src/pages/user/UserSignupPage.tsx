@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputPassword } from "@/components/ui/input-password";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 
@@ -49,12 +50,14 @@ export function UserSignupPage() {
     onSuccess: () => {
       form.reset();
       form.setErrors({});
-      setSuccessMessage("Account created successfully! You can now log in.");
-      setTimeout(() => navigate('/user/login'), 3000);
+      const successMessage = "Account created successfully! You can now log in.";
+      toast.success(successMessage);
+      setSuccessMessage(successMessage);
+      setTimeout(() => navigate('/user/login'), 2000);
     },
     onError: (err) => {
       if (err instanceof Error) {
-
+        toast.error(err.message);
         form.setErrors({ root: err.message });
       }
     },
